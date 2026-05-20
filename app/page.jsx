@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 const RESTAURANTS = [
-  { id: "brewery_vivant", name: "Brewery Vivant", emoji: "🍺", description: "TESTBelgian-inspired pub poutine" },
+  { id: "brewery_vivant", name: "Brewery Vivant", emoji: "🍺", description: "Belgian-inspired pub poutine" },
   { id: "ganders", name: "Ganders at the B.O.B.", emoji: "🏢", description: "Downtown classic with a twist" },
   { id: "barrio", name: "Barrio", emoji: "🌶️", description: "Latin-fusion poutine experience" },
   { id: "the_meanwhile", name: "The Meanwhile Bar", emoji: "🎸", description: "Rock-and-roll loaded poutine" },
@@ -131,6 +131,10 @@ function MainApp({ participant, onUpdate }) {
 
   const castVote = async (id) => {
     if (favorite) return;
+    const rest = RESTAURANTS.find(x => x.id === id);
+    if (!window.confirm(`Cast your final vote for "${rest.name}"?
+
+This cannot be changed after submitting.`)) return;
     setVoteSaving(true);
     const { data, error } = await supabase
       .from("participants")
@@ -231,7 +235,7 @@ function MainApp({ participant, onUpdate }) {
             <div>
               <div style={{ color: canVote ? "#f0e6c8" : "#5a5a7a", fontWeight: 600, fontSize: 16 }}>Which is your favourite?</div>
               <div style={{ color: "#5a5a7a", fontSize: 12, marginTop: 2 }}>
-                {favorite ? "Your vote has been cast!" : canVote ? "One vote only — choose wisely!" : "Visit at least one restaurant first."}
+                {favorite ? "Your vote has been cast — thank you!" : canVote ? "⚠️ This cannot be changed once submitted. Choose wisely!" : "Visit at least one restaurant first."}
               </div>
             </div>
           </div>
@@ -268,7 +272,7 @@ function MainApp({ participant, onUpdate }) {
                       </div>
                     )}
                     {!favorite && (
-                      <div style={{ color: "#3a3a6a", fontSize: 12, flexShrink: 0 }}>Vote →</div>
+                      <div style={{ color: "#3a3a6a", fontSize: 12, flexShrink: 0, textAlign: "right", lineHeight: 1.4 }}>Tap to vote</div>
                     )}
                   </div>
                 );
