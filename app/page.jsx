@@ -178,6 +178,7 @@ function EmailGate({ onEnter }) {
           </div>
         </div>
         <div className="gate-card">
+          <div style={{ fontFamily: "GravySans, sans-serif", fontSize: 22, color: "#fff", marginBottom: 12, letterSpacing: "0.04em" }}>Track your progress and vote!</div>
           <div className="gate-label">Your Email Address</div>
           <input className="gate-input" type="email" placeholder="you@email.com" value={email}
             onChange={e => { setEmail(e.target.value); setError(""); }}
@@ -187,9 +188,7 @@ function EmailGate({ onEnter }) {
           <button className="gate-btn" onClick={handleSubmit} disabled={loading}>
             {loading ? "LOADING..." : "LET'S GO"}
           </button>
-          <p style={{ fontSize: 11, color: "#555", marginTop: 14, textAlign: "center", lineHeight: 1.6 }}>
-            Your email saves your progress and lets you cast one vote.<br/>We won&apos;t send you anything.
-          </p>
+
         </div>
       </div>
     </div>
