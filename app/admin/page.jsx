@@ -100,6 +100,22 @@ export default function AdminPage() {
     setDataLoading(false);
   };
 
+  const resetAllVotes = async () => {
+    if (!window.confirm('Reset ALL votes and visits for every participant?
+
+This cannot be undone.')) return;
+    const { error } = await supabase
+      .from('participants')
+      .update({ visited: [], favorite: null })
+      .neq('email', '');
+    if (!error) {
+      await loadData();
+      alert('All votes and visits have been reset.');
+    } else {
+      alert('Something went wrong: ' + error.message);
+    }
+  };
+
   const signOut = async () => {
     await supabase.auth.signOut();
     setSession(null);
@@ -140,6 +156,9 @@ export default function AdminPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button onClick={loadData} style={{ background: "transparent", color: "#5a5a7a", border: "1px solid #3a3a5a", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
             ↻ Refresh
+          </button>
+          <button onClick={resetAllVotes} style={{ background: "transparent", color: "#e63946", border: "1px solid #e63946", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
+            🗑 Reset All Votes
           </button>
           <button onClick={signOut} style={{ background: "transparent", color: "#5a5a7a", border: "1px solid #3a3a5a", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
             Sign out
