@@ -7,8 +7,6 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2dWx5Zm5pb2d1b2RhdmZrdGViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODcwMTQsImV4cCI6MjA5NDg2MzAxNH0.yMvc8y_lcBhZFPhWhWNnsoAZayKjX52CDHAf66IixwU"
 );
 
-const ADMIN_EMAILS = ["alexziuraitis@gmail.com"]; // add admin emails here
-
 const RESTAURANTS = [
   { id: "brewery_vivant", name: "Brewery Vivant", emoji: "🍺" },
   { id: "ganders", name: "Ganders at the B.O.B.", emoji: "🏢" },
@@ -22,12 +20,62 @@ const RESTAURANTS = [
 
 const medals = ["🥇", "🥈", "🥉"];
 
+function LoginForm({ onLogin }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogin = async () => {
+    if (!email || !password) return;
+    setLoading(true);
+    setError("");
+    const { error: err } = await supabase.auth.signInWithPassword({ email, password });
+    if (err) {
+      setError("Invalid email or password.");
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div style={{ background: "#0d0d1f", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+      <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
+      <h1 style={{ fontFamily: "'Georgia', serif", color: "#c89c3c", fontSize: 28, margin: "0 0 8px" }}>Admin Access</h1>
+      <p style={{ color: "#5a5a7a", fontSize: 14, marginBottom: 28 }}>Poutine Week · Leaderboard</p>
+      <div style={{ background: "#16213e", border: "1px solid #2a2a4a", borderRadius: 16, padding: "2rem", width: "100%", maxWidth: 380 }}>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={e => { setEmail(e.target.value); setError(""); }}
+          style={{ width: "100%", boxSizing: "border-box", background: "#0f0f23", border: "1px solid #3a3a6a", borderRadius: 8, color: "#d4c9a8", fontSize: 15, padding: "10px 14px", outline: "none", fontFamily: "inherit", marginBottom: 10 }}
+        />
+        <input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={e => { setPassword(e.target.value); setError(""); }}
+          onKeyDown={e => e.key === "Enter" && handleLogin()}
+          style={{ width: "100%", boxSizing: "border-box", background: "#0f0f23", border: "1px solid #3a3a6a", borderRadius: 8, color: "#d4c9a8", fontSize: 15, padding: "10px 14px", outline: "none", fontFamily: "inherit", marginBottom: 10 }}
+        />
+        {error && <div style={{ color: "#e63946", fontSize: 13, marginBottom: 10 }}>{error}</div>}
+        <button
+          onClick={handleLogin}
+          disabled={loading}
+          style={{ width: "100%", background: "linear-gradient(90deg, #c89c3c, #e8b94f)", color: "#1a1408", border: "none", borderRadius: 8, padding: "11px 0", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}
+        >
+          {loading ? "Signing in..." : "Sign In"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPage() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [participants, setParticipants] = useState([]);
   const [dataLoading, setDataLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -36,38 +84,37 @@ export default function AdminPage() {
     });
     const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => {
       setSession(s);
+      if (s) loadData();
     });
     return () => listener.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!session) return;
-    const email = session.user?.email;
-    if (ADMIN_EMAILS.includes(email)) {
-      setIsAdmin(true);
-      loadData();
-    } else {
-      setIsAdmin(false);
-    }
+    if (session) loadData();
   }, [session]);
 
   const loadData = async () => {
     setDataLoading(true);
-    const { data } = await supabase.from("participants").select("*");
+    const { data } = await supabase.from("participants").select("*").order("created_at", { ascending: false });
     if (data) setParticipants(data);
     setDataLoading(false);
   };
 
-  const signIn = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.href }
-    });
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
+    setSession(null);
+    setParticipants([]);
   };
+
+  if (loading) {
+    return (
+      <div style={{ background: "#0d0d1f", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ color: "#c89c3c", fontFamily: "'Georgia', serif", fontSize: 18 }}>Loading…</div>
+      </div>
+    );
+  }
+
+  if (!session) return <LoginForm />;
 
   const voteCounts = {};
   const visitCounts = {};
@@ -82,45 +129,6 @@ export default function AdminPage() {
     .sort((a, b) => b.votes - a.votes || b.visits - a.visits);
 
   const totalVoters = participants.filter(p => p.favorite).length;
-  const totalParticipants = participants.length;
-
-  if (loading) {
-    return (
-      <div style={{ background: "#0d0d1f", minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
-        <div style={{ color: "#c89c3c", fontFamily: "'Georgia', serif", fontSize: 18 }}>Loading…</div>
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div style={{ background: "#0d0d1f", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>🔒</div>
-        <h1 style={{ fontFamily: "'Georgia', serif", color: "#c89c3c", fontSize: 28, margin: "0 0 8px" }}>Admin Access</h1>
-        <p style={{ color: "#5a5a7a", fontSize: 14, marginBottom: 28 }}>Sign in with Google to view the leaderboard.</p>
-        <button
-          onClick={signIn}
-          style={{ background: "#fff", color: "#1a1a1a", border: "none", borderRadius: 8, padding: "12px 28px", fontWeight: 700, fontSize: 15, cursor: "pointer", display: "flex", alignItems: "center", gap: 10 }}
-        >
-          <span style={{ fontSize: 18 }}>G</span> Sign in with Google
-        </button>
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return (
-      <div style={{ background: "#0d0d1f", minHeight: "100vh", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-        <div style={{ fontSize: 48, marginBottom: 12 }}>⛔</div>
-        <h1 style={{ fontFamily: "'Georgia', serif", color: "#e63946", fontSize: 24, margin: "0 0 8px" }}>Access Denied</h1>
-        <p style={{ color: "#5a5a7a", fontSize: 14, marginBottom: 20 }}>Your account doesn't have admin access.</p>
-        <p style={{ color: "#5a5a7a", fontSize: 12, marginBottom: 20 }}>Signed in as: {session.user?.email}</p>
-        <button onClick={signOut} style={{ background: "transparent", color: "#5a5a7a", border: "1px solid #3a3a5a", borderRadius: 8, padding: "8px 18px", cursor: "pointer", fontFamily: "inherit" }}>
-          Sign out
-        </button>
-      </div>
-    );
-  }
 
   return (
     <div style={{ background: "#0d0d1f", minHeight: "100vh", fontFamily: "'Segoe UI', system-ui, sans-serif", paddingBottom: 40 }}>
@@ -129,16 +137,21 @@ export default function AdminPage() {
           <h1 style={{ fontFamily: "'Georgia', serif", color: "#c89c3c", fontSize: 24, margin: 0 }}>🏆 Admin Leaderboard</h1>
           <div style={{ color: "#5a5a6a", fontSize: 12, marginTop: 4 }}>Poutine Week · Michigan Street</div>
         </div>
-        <button onClick={signOut} style={{ background: "transparent", color: "#5a5a7a", border: "1px solid #3a3a5a", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
-          Sign out
-        </button>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button onClick={loadData} style={{ background: "transparent", color: "#5a5a7a", border: "1px solid #3a3a5a", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
+            ↻ Refresh
+          </button>
+          <button onClick={signOut} style={{ background: "transparent", color: "#5a5a7a", border: "1px solid #3a3a5a", borderRadius: 8, padding: "6px 14px", cursor: "pointer", fontFamily: "inherit", fontSize: 12 }}>
+            Sign out
+          </button>
+        </div>
       </div>
 
       <div style={{ maxWidth: 680, margin: "0 auto", padding: "1.5rem 1rem" }}>
         {/* Stats */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12, marginBottom: 28 }}>
           {[
-            { label: "Participants", value: totalParticipants },
+            { label: "Participants", value: participants.length },
             { label: "Votes cast", value: totalVoters },
             { label: "Restaurants", value: RESTAURANTS.length },
           ].map(s => (
@@ -177,7 +190,9 @@ export default function AdminPage() {
 
         {/* Participant list */}
         <div>
-          <div style={{ color: "#7a6a3a", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 12 }}>All Participants</div>
+          <div style={{ color: "#7a6a3a", fontSize: 12, textTransform: "uppercase", letterSpacing: "0.15em", marginBottom: 12 }}>
+            All Participants {dataLoading && <span style={{ color: "#5a5a7a" }}>· Loading…</span>}
+          </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {participants.map(p => {
               const fav = RESTAURANTS.find(r => r.id === p.favorite);
