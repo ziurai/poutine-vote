@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 const RESTAURANTS = [
-  { id: "brewery_vivant", name: "Brewery Vivant", emoji: "🍺", description: "Belgian-inspired pub poutine" },
+  { id: "brewery_vivant", name: "Brewery Vivant", emoji: "🍺", description: "TESTBelgian-inspired pub poutine" },
   { id: "ganders", name: "Ganders at the B.O.B.", emoji: "🏢", description: "Downtown classic with a twist" },
   { id: "barrio", name: "Barrio", emoji: "🌶️", description: "Latin-fusion poutine experience" },
   { id: "the_meanwhile", name: "The Meanwhile Bar", emoji: "🎸", description: "Rock-and-roll loaded poutine" },
