@@ -151,8 +151,11 @@ function EmailGate({ onEnter }) {
       if (err && err.code === "PGRST116") {
         const { data: newP, error: insertErr } = await supabase.from("participants").insert({ email: clean, visited: [], favorite: null }).select().single();
         if (insertErr) throw insertErr;
+fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
+
         onEnter(newP);
-      } else if (err) { throw err; } else { onEnter(data); }
+      } else if (err) { throw err; } else {fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
+  onEnter(data); }
     } catch (e) { setError("Something went wrong. Please try again."); }
     setLoading(false);
   };
