@@ -7,17 +7,6 @@ const supabase = createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh2dWx5Zm5pb2d1b2RhdmZrdGViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkyODcwMTQsImV4cCI6MjA5NDg2MzAxNH0.yMvc8y_lcBhZFPhWhWNnsoAZayKjX52CDHAf66IixwU"
 );
 
-const RESTAURANTS = [
-  { id: "brewery_vivant", name: "Brewery Vivant", emoji: "", description: "Belgian-inspired pub poutine" },
-  { id: "ganders", name: "Ganders at the B.O.B.", emoji: "", description: "Downtown classic with a twist" },
-  { id: "barrio", name: "Barrio", emoji: "", description: "Latin-fusion poutine experience" },
-  { id: "the_meanwhile", name: "The Meanwhile Bar", emoji: "", description: "Rock-and-roll loaded poutine" },
-  { id: "kitchen_by_lons", name: "Kitchen by Lon's", emoji: "", description: "Elevated upscale curds & gravy" },
-  { id: "terra_grt", name: "Terra GR", emoji: "", description: "Farm-to-table vegetarian option" },
-  { id: "rockford_brewing", name: "Rockford Brewing", emoji: "", description: "Craft beer braised poutine" },
-  { id: "the_cheshire", name: "The Cheshire", emoji: "", description: "Quirky neighbourhood favourite" },
-];
-
 const css = `
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap');
   @font-face { font-family: 'GravySans'; src: url('/fonts/GravySans.woff') format('woff'); font-weight: 400; }
@@ -26,9 +15,6 @@ const css = `
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #111; }
   .app { font-family: 'DM Sans', sans-serif; background: #111; min-height: 100vh; color: #fff; }
-  .gravy { font-family: 'GravySans', sans-serif; }
-
-  /* NAV */
   .nav { background: #111; border-bottom: 3px solid #FFD000; padding: 0 1.5rem; display: flex; align-items: center; height: 60px; gap: 0; position: sticky; top: 0; z-index: 100; }
   .nav-logo { display: flex; align-items: center; text-decoration: none; margin-right: auto; }
   .nav-logo img { height: 36px; width: auto; }
@@ -36,18 +22,13 @@ const css = `
   .nav-link:hover { color: #FFD000; border-bottom-color: #FFD000; }
   .nav-btn { background: #FFD000; color: #111; border: none; border-radius: 2px; padding: 7px 16px; font-family: 'GravySans', sans-serif; font-size: 15px; letter-spacing: 0.06em; cursor: pointer; margin-left: 12px; transition: background 0.15s; white-space: nowrap; }
   .nav-btn:hover { background: #ffe033; }
-
-  /* MODAL */
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
   .modal { background: #1a1a1a; border: 2px solid #FFD000; border-radius: 4px; width: 100%; max-width: 780px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
   .modal-header { padding: 14px 18px; border-bottom: 2px solid #2a2a2a; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
   .modal-title { font-family: 'GravySans', sans-serif; font-size: 22px; color: #FFD000; letter-spacing: 0.06em; }
   .modal-close { background: transparent; border: 1px solid #444; border-radius: 2px; color: #aaa; font-size: 18px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .modal-close:hover { border-color: #FFD000; color: #FFD000; }
-  .modal-body { flex: 1; overflow: hidden; }
   .modal-body iframe { width: 100%; height: 500px; border: none; display: block; }
-
-  /* EMAIL GATE */
   .gate-wrap { min-height: calc(100vh - 63px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; }
   .gate-badge { background: #FFD000; color: #111; font-family: 'GravySans', sans-serif; font-size: 13px; letter-spacing: 0.15em; padding: 4px 14px; border-radius: 2px; margin-bottom: 18px; display: inline-block; }
   .gate-title { font-family: 'GravySans', sans-serif; font-size: clamp(56px, 11vw, 96px); line-height: 0.9; color: #FFD000; text-align: center; margin-bottom: 8px; }
@@ -60,8 +41,6 @@ const css = `
   .gate-btn:hover { background: #ffe033; }
   .gate-btn:disabled { background: #444; color: #666; cursor: not-allowed; }
   .gate-error { color: #ff4444; font-size: 13px; margin-top: 8px; }
-
-  /* MAIN APP */
   .main { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
   .user-bar { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 2px; padding: 8px 14px; margin-bottom: 24px; }
   .user-email { font-size: 12px; color: #777; }
@@ -79,7 +58,6 @@ const css = `
   .rest-check { width: 22px; height: 22px; border: 2px solid #333; border-radius: 2px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; transition: all 0.15s; }
   .rest-check.checked { background: #7ab320; border-color: #7ab320; color: #fff; }
   .rest-check.fav { background: #FFD000; border-color: #FFD000; color: #111; font-size: 14px; }
-  .rest-emoji { font-size: 24px; flex-shrink: 0; }
   .rest-name { font-weight: 700; font-size: 14px; color: #fff; }
   .rest-desc { font-size: 11px; color: #666; margin-top: 2px; }
   .rest-tag { font-family: 'GravySans', sans-serif; font-size: 11px; letter-spacing: 0.1em; color: #FFD000; background: rgba(255,208,0,0.1); border: 1px solid #FFD000; padding: 2px 8px; border-radius: 2px; flex-shrink: 0; }
@@ -100,6 +78,7 @@ const css = `
   .vote-name.chosen { color: #FFD000; }
   .vote-desc { font-size: 11px; color: #666; margin-top: 3px; }
   .voted-banner { background: #1f1a00; border: 2px solid #FFD000; border-radius: 2px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
+  .loading-screen { min-height: 100vh; background: #111; display: flex; align-items: center; justify-content: center; font-family: 'GravySans', sans-serif; color: #FFD000; font-size: 22px; letter-spacing: 0.1em; }
 `;
 
 function Nav({ onOpenTracker }) {
@@ -120,14 +99,10 @@ function GravyTrainModal({ onClose }) {
       <div className="modal">
         <div className="modal-header">
           <span className="modal-title">GRAVY TRAIN TRACKER</span>
-          <button className="modal-close" onClick={onClose}></button>
+          <button className="modal-close" onClick={onClose}>x</button>
         </div>
         <div className="modal-body">
-          <iframe
-            src="https://gravy-train-tracker.vercel.app/embed"
-            title="Gravy Train Tracker"
-            allowFullScreen
-          />
+          <iframe src="https://gravy-train-tracker.vercel.app/embed" title="Gravy Train Tracker" allowFullScreen />
         </div>
       </div>
     </div>
@@ -151,11 +126,12 @@ function EmailGate({ onEnter }) {
       if (err && err.code === "PGRST116") {
         const { data: newP, error: insertErr } = await supabase.from("participants").insert({ email: clean, visited: [], favorite: null }).select().single();
         if (insertErr) throw insertErr;
-fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
-
+        fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
         onEnter(newP);
-      } else if (err) { throw err; } else {fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
-  onEnter(data); }
+      } else if (err) { throw err; } else {
+        fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
+        onEnter(data);
+      }
     } catch (e) { setError("Something went wrong. Please try again."); }
     setLoading(false);
   };
@@ -168,7 +144,7 @@ fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "applicatio
       <div className="gate-wrap">
         <span className="gate-badge">Michigan Street · Grand Rapids</span>
         <h1 className="gate-title">POUTINE<br/>WEEK</h1>
-        <p className="gate-sub">September 16–27, 2026 &nbsp;·&nbsp; Cast your vote</p>
+        <p className="gate-sub">September 16–27, 2026 · Cast your vote</p>
         <div className="gate-card">
           <div className="gate-label">Your Email Address</div>
           <input className="gate-input" type="email" placeholder="you@email.com" value={email}
@@ -177,7 +153,7 @@ fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "applicatio
           />
           {error && <div className="gate-error">{error}</div>}
           <button className="gate-btn" onClick={handleSubmit} disabled={loading}>
-            {loading ? "LOADING..." : "LET'S GO →"}
+            {loading ? "LOADING..." : "LET'S GO"}
           </button>
           <p style={{ fontSize: 11, color: "#555", marginTop: 14, textAlign: "center", lineHeight: 1.6 }}>
             Your email saves your progress and lets you cast one vote.<br/>We won&apos;t send you anything.
@@ -189,6 +165,7 @@ fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "applicatio
 }
 
 function MainApp({ participant, onUpdate }) {
+  const [restaurants, setRestaurants] = useState([]);
   const [visited, setVisited] = useState(participant.visited || []);
   const [favorite, setFavorite] = useState(participant.favorite || null);
   const [saving, setSaving] = useState(false);
@@ -196,7 +173,12 @@ function MainApp({ participant, onUpdate }) {
   const [voteSaving, setVoteSaving] = useState(false);
   const [trackerOpen, setTrackerOpen] = useState(false);
 
-  useEffect(() => { document.title = "Poutine Week — Vote"; }, []);
+  useEffect(() => {
+    document.title = "Poutine Week — Vote";
+    supabase.from("restaurants").select("*").eq("active", true).order("sort_order").then(({ data }) => {
+      if (data) setRestaurants(data);
+    });
+  }, []);
 
   const toggleVisited = (id) => {
     if (favorite === id) return;
@@ -212,7 +194,7 @@ function MainApp({ participant, onUpdate }) {
 
   const castVote = async (id) => {
     if (favorite) return;
-    const rest = RESTAURANTS.find(x => x.id === id);
+    const rest = restaurants.find(x => x.id === id);
     if (!window.confirm(`Cast your final vote for "${rest.name}"?\n\nThis cannot be changed after submitting.`)) return;
     setVoteSaving(true);
     const { data, error } = await supabase.from("participants").update({ favorite: id }).eq("email", participant.email).select().single();
@@ -220,8 +202,11 @@ function MainApp({ participant, onUpdate }) {
     setVoteSaving(false);
   };
 
-  const visitedRestaurants = RESTAURANTS.filter(r => visited.includes(r.id));
+  const visitedRestaurants = restaurants.filter(r => visited.includes(r.id));
   const canVote = visited.length >= 1;
+  const favRest = restaurants.find(r => r.id === favorite);
+
+  if (restaurants.length === 0) return <div className="loading-screen">LOADING...</div>;
 
   return (
     <div className="app">
@@ -242,13 +227,12 @@ function MainApp({ participant, onUpdate }) {
         </div>
 
         <div className="rest-grid">
-          {RESTAURANTS.map(r => {
+          {restaurants.map(r => {
             const isVisited = visited.includes(r.id);
             const isFav = favorite === r.id;
             return (
               <div key={r.id} className={`rest-card${isFav ? " favorite" : isVisited ? " visited" : ""}`} onClick={() => !isFav && toggleVisited(r.id)}>
                 <div className={`rest-check${isFav ? " fav" : isVisited ? " checked" : ""}`}>{isFav ? "*" : isVisited ? "v" : ""}</div>
-                <span className="rest-emoji">{r.emoji}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="rest-name">{r.name}</div>
                   <div className="rest-desc">{r.description}</div>
@@ -261,8 +245,8 @@ function MainApp({ participant, onUpdate }) {
 
         <div className="save-row">
           <button className="btn-primary" onClick={saveVisited} disabled={saving}>{saving ? "SAVING..." : "SAVE MY VISITS"}</button>
-          {savedMsg && <span className="save-ok">v {savedMsg}</span>}
-          <span className="save-count">{visited.length} / {RESTAURANTS.length} visited</span>
+          {savedMsg && <span className="save-ok">Saved!</span>}
+          <span className="save-count">{visited.length} / {restaurants.length} visited</span>
         </div>
 
         <hr className="divider" />
@@ -279,19 +263,17 @@ function MainApp({ participant, onUpdate }) {
 
         {canVote && !favorite && (
           <div className="warning-box">
-            <span style={{ fontSize: 18 }}>!</span>
+            <span>!</span>
             <span><strong>One vote only.</strong> Once submitted, your choice cannot be changed.</span>
           </div>
         )}
 
-        {favorite && (
+        {favorite && favRest && (
           <div className="voted-banner">
-            <span style={{ fontSize: 26 }}>{RESTAURANTS.find(r => r.id === favorite)?.emoji}</span>
             <div>
               <div style={{ fontFamily: "'GravySans', sans-serif", fontSize: 12, color: "#FFD000", letterSpacing: "0.12em" }}>YOUR VOTE</div>
-              <div style={{ fontFamily: "'GravySans', sans-serif", fontSize: 24, color: "#fff" }}>{RESTAURANTS.find(r => r.id === favorite)?.name}</div>
+              <div style={{ fontFamily: "'GravySans', sans-serif", fontSize: 24, color: "#fff" }}>{favRest.name}</div>
             </div>
-            <span style={{ marginLeft: "auto", fontSize: 28 }}></span>
           </div>
         )}
 
@@ -302,12 +284,11 @@ function MainApp({ participant, onUpdate }) {
               const isOther = favorite && !isFav;
               return (
                 <div key={r.id} className={`vote-card${isFav ? " chosen" : isOther ? " faded" : ""}`} onClick={() => !favorite && castVote(r.id)}>
-                  <span style={{ fontSize: 26 }}>{r.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div className={`vote-name${isFav ? " chosen" : ""}`}>{r.name}</div>
                     <div className="vote-desc">{r.description}</div>
                   </div>
-                  <span style={{ fontSize: 18, color: isFav ? "#FFD000" : "#333", marginLeft: "auto", flexShrink: 0 }}>{isFav ? "*" : !favorite ? "→" : ""}</span>
+                  <span style={{ fontSize: 16, color: isFav ? "#FFD000" : "#333", marginLeft: "auto", flexShrink: 0 }}>{isFav ? "*" : !favorite ? ">" : ""}</span>
                 </div>
               );
             })}
