@@ -18,13 +18,84 @@ const RESTAURANTS = [
   { id: "the_cheshire", name: "The Cheshire", emoji: "🐱", description: "Quirky neighbourhood favourite" },
 ];
 
-const GRAVY_QUOTES = [
-  "Every vote counts... like curds in gravy.",
-  "Your cheese squeak is your voice.",
-  "Michigan's poutine scene is no joke — vote wisely.",
-  "Gravy flows where democracy leads.",
-  "The people's choice: drowned in glory.",
-];
+const css = `
+  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111; }
+  .poutine-app { font-family: 'DM Sans', sans-serif; background: #111; min-height: 100vh; color: #fff; }
+  .display { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.04em; }
+
+  /* Email Gate */
+  .gate-wrap { min-height: 100vh; background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; }
+  .gate-badge { background: #FFD000; color: #111; font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 0.2em; padding: 4px 14px; border-radius: 2px; margin-bottom: 18px; display: inline-block; }
+  .gate-title { font-family: 'Bebas Neue', sans-serif; font-size: clamp(52px, 10vw, 88px); line-height: 0.92; color: #FFD000; text-align: center; margin-bottom: 6px; }
+  .gate-sub { font-size: 15px; color: #888; text-align: center; margin-bottom: 36px; letter-spacing: 0.05em; text-transform: uppercase; font-size: 12px; }
+  .gate-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 4px; padding: 2rem; width: 100%; max-width: 420px; }
+  .gate-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.15em; color: #888; margin-bottom: 8px; }
+  .gate-input { width: 100%; background: #111; border: 2px solid #333; border-radius: 2px; color: #fff; font-size: 16px; padding: 12px 16px; outline: none; font-family: 'DM Sans', sans-serif; transition: border-color 0.15s; }
+  .gate-input:focus { border-color: #FFD000; }
+  .gate-btn { width: 100%; margin-top: 12px; background: #FFD000; color: #111; border: none; border-radius: 2px; padding: 14px; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.1em; cursor: pointer; transition: background 0.15s, transform 0.1s; }
+  .gate-btn:hover { background: #ffe033; }
+  .gate-btn:active { transform: scale(0.98); }
+  .gate-btn:disabled { background: #444; color: #666; cursor: not-allowed; }
+  .gate-error { color: #ff4444; font-size: 13px; margin-top: 8px; }
+
+  /* Header */
+  .header { background: #111; border-bottom: 3px solid #FFD000; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
+  .header-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #FFD000; letter-spacing: 0.06em; }
+  .header-email { font-size: 12px; color: #555; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* Main */
+  .main { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
+
+  /* Step header */
+  .step-header { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 18px; }
+  .step-num { background: #FFD000; color: #111; font-family: 'Bebas Neue', sans-serif; font-size: 18px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border-radius: 2px; margin-top: 2px; }
+  .step-num.inactive { background: #2a2a2a; color: #555; }
+  .step-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; color: #fff; line-height: 1; }
+  .step-title.inactive { color: #444; }
+  .step-desc { font-size: 13px; color: #666; margin-top: 4px; line-height: 1.5; }
+
+  /* Restaurant grid */
+  .rest-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(270px, 1fr)); gap: 8px; margin-bottom: 16px; }
+  .rest-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 2px; padding: 14px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: border-color 0.15s, background 0.15s; user-select: none; }
+  .rest-card:hover { border-color: #FFD000; }
+  .rest-card.visited { background: #1a1f0a; border-color: #7ab320; }
+  .rest-card.favorite { background: #1f1a00; border-color: #FFD000; }
+  .rest-card.disabled { cursor: default; }
+  .rest-check { width: 22px; height: 22px; border: 2px solid #333; border-radius: 2px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; transition: all 0.15s; }
+  .rest-check.checked { background: #7ab320; border-color: #7ab320; color: #fff; }
+  .rest-check.fav { background: #FFD000; border-color: #FFD000; color: #111; font-size: 14px; }
+  .rest-emoji { font-size: 24px; flex-shrink: 0; }
+  .rest-name { font-weight: 700; font-size: 14px; color: #fff; }
+  .rest-desc { font-size: 11px; color: #666; margin-top: 2px; }
+  .rest-tag { font-family: 'Bebas Neue', sans-serif; font-size: 11px; letter-spacing: 0.1em; color: #FFD000; background: rgba(255,208,0,0.1); border: 1px solid #FFD000; padding: 2px 8px; border-radius: 2px; flex-shrink: 0; }
+
+  /* Save button */
+  .save-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .btn-primary { background: #FFD000; color: #111; border: none; border-radius: 2px; padding: 10px 24px; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 0.08em; cursor: pointer; transition: background 0.15s, transform 0.1s; }
+  .btn-primary:hover { background: #ffe033; }
+  .btn-primary:active { transform: scale(0.97); }
+  .btn-primary:disabled { background: #333; color: #555; cursor: not-allowed; }
+  .save-count { font-size: 12px; color: #555; margin-left: auto; }
+  .save-ok { color: #7ab320; font-size: 13px; font-weight: 600; }
+
+  /* Divider */
+  .divider { border: none; border-top: 2px solid #1f1f1f; margin: 28px 0; }
+
+  /* Vote grid */
+  .vote-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 2px; padding: 16px; display: flex; align-items: center; gap: 14px; cursor: pointer; transition: all 0.15s; }
+  .vote-card:hover { border-color: #FFD000; background: #1f1f00; }
+  .vote-card.chosen { background: #1f1a00; border-color: #FFD000; }
+  .vote-card.faded { opacity: 0.3; cursor: default; }
+  .vote-card.faded:hover { border-color: #2a2a2a; background: #1a1a1a; }
+  .vote-name { font-family: 'Bebas Neue', sans-serif; font-size: 20px; color: #fff; line-height: 1; }
+  .vote-name.chosen { color: #FFD000; }
+  .vote-desc { font-size: 11px; color: #666; margin-top: 3px; }
+  .vote-arrow { font-size: 18px; color: #333; margin-left: auto; flex-shrink: 0; }
+  .vote-arrow.chosen { color: #FFD000; }
+  .warning-box { background: #1a1200; border: 2px solid #FFD000; border-radius: 2px; padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: #FFD000; display: flex; align-items: center; gap: 10px; }
+`;
 
 function EmailGate({ onEnter }) {
   const [email, setEmail] = useState("");
@@ -33,69 +104,44 @@ function EmailGate({ onEnter }) {
 
   const handleSubmit = async () => {
     const clean = email.trim().toLowerCase();
-    if (!clean || !clean.includes("@")) {
-      setError("Please enter a valid email address.");
-      return;
-    }
-    setLoading(true);
-    setError("");
+    if (!clean || !clean.includes("@")) { setError("Please enter a valid email address."); return; }
+    setLoading(true); setError("");
     try {
-      const { data, error: err } = await supabase
-        .from("participants")
-        .select("*")
-        .eq("email", clean)
-        .single();
+      const { data, error: err } = await supabase.from("participants").select("*").eq("email", clean).single();
       if (err && err.code === "PGRST116") {
-        const { data: newP, error: insertErr } = await supabase
-          .from("participants")
-          .insert({ email: clean, visited: [], favorite: null })
-          .select()
-          .single();
+        const { data: newP, error: insertErr } = await supabase.from("participants").insert({ email: clean, visited: [], favorite: null }).select().single();
         if (insertErr) throw insertErr;
         onEnter(newP);
-      } else if (err) {
-        throw err;
-      } else {
-        onEnter(data);
-      }
-    } catch (e) {
-      setError("Something went wrong. Please try again.");
-    }
+      } else if (err) { throw err; } else { onEnter(data); }
+    } catch (e) { setError("Something went wrong. Please try again."); }
     setLoading(false);
   };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0d0d1f", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-      <div style={{ fontSize: 52, marginBottom: 12 }}>🍟</div>
-      <h1 style={{ fontFamily: "'Georgia', serif", color: "#c89c3c", fontSize: "clamp(28px, 5vw, 44px)", margin: "0 0 6px", textAlign: "center" }}>
-        Poutine Week
-      </h1>
-      <p style={{ color: "#7a6a3a", fontSize: 13, letterSpacing: "0.2em", textTransform: "uppercase", marginBottom: 32 }}>
-        Grand Rapids · Michigan Street
-      </p>
-      <div style={{ background: "#16213e", border: "1px solid #2a2a4a", borderRadius: 16, padding: "2rem", width: "100%", maxWidth: 400 }}>
-        <div style={{ color: "#c0b8d0", fontWeight: 600, fontSize: 17, fontFamily: "'Georgia', serif", marginBottom: 6 }}>
-          Welcome, Poutine Explorer!
+    <div className="poutine-app">
+      <style>{css}</style>
+      <div className="gate-wrap">
+        <span className="gate-badge">Michigan Street · Grand Rapids</span>
+        <h1 className="gate-title">POUTINE<br/>WEEK</h1>
+        <p className="gate-sub">September 16–27, 2026 &nbsp;·&nbsp; Cast your vote</p>
+        <div className="gate-card">
+          <div className="gate-label">Your Email Address</div>
+          <input
+            className="gate-input"
+            type="email"
+            placeholder="you@email.com"
+            value={email}
+            onChange={e => { setEmail(e.target.value); setError(""); }}
+            onKeyDown={e => e.key === "Enter" && handleSubmit()}
+          />
+          {error && <div className="gate-error">{error}</div>}
+          <button className="gate-btn" onClick={handleSubmit} disabled={loading}>
+            {loading ? "LOADING..." : "LET'S GO →"}
+          </button>
+          <p style={{ fontSize: 11, color: "#555", marginTop: 14, textAlign: "center", lineHeight: 1.6 }}>
+            Your email is used to save your progress and cast one vote.<br/>We won&apos;t send you anything.
+          </p>
         </div>
-        <div style={{ color: "#5a5a7a", fontSize: 13, marginBottom: 20, lineHeight: 1.6 }}>
-          Enter your email to track which restaurants you've visited and cast your vote for the best poutine.
-        </div>
-        <input
-          type="email"
-          placeholder="your@email.com"
-          value={email}
-          onChange={e => { setEmail(e.target.value); setError(""); }}
-          onKeyDown={e => e.key === "Enter" && handleSubmit()}
-          style={{ width: "100%", boxSizing: "border-box", background: "#0f0f23", border: "1px solid #3a3a6a", borderRadius: 8, color: "#d4c9a8", fontSize: 15, padding: "10px 14px", outline: "none", fontFamily: "inherit", marginBottom: 8 }}
-        />
-        {error && <div style={{ color: "#e63946", fontSize: 13, marginBottom: 8 }}>{error}</div>}
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          style={{ width: "100%", background: "linear-gradient(90deg, #c89c3c, #e8b94f)", color: "#1a1408", border: "none", borderRadius: 8, padding: "11px 0", fontWeight: 700, fontSize: 15, cursor: "pointer", fontFamily: "inherit" }}
-        >
-          {loading ? "Loading..." : "Let's Go →"}
-        </button>
       </div>
     </div>
   );
@@ -115,37 +161,18 @@ function MainApp({ participant, onUpdate }) {
 
   const saveVisited = async () => {
     setSaving(true);
-    const { data, error } = await supabase
-      .from("participants")
-      .update({ visited })
-      .eq("email", participant.email)
-      .select()
-      .single();
-    if (!error) {
-      onUpdate(data);
-      setSavedMsg("Saved!");
-      setTimeout(() => setSavedMsg(""), 2000);
-    }
+    const { data, error } = await supabase.from("participants").update({ visited }).eq("email", participant.email).select().single();
+    if (!error) { onUpdate(data); setSavedMsg("Saved!"); setTimeout(() => setSavedMsg(""), 2500); }
     setSaving(false);
   };
 
   const castVote = async (id) => {
     if (favorite) return;
     const rest = RESTAURANTS.find(x => x.id === id);
-    if (!window.confirm(`Cast your final vote for "${rest.name}"?
-
-This cannot be changed after submitting.`)) return;
+    if (!window.confirm(`Cast your final vote for "${rest.name}"?\n\nThis cannot be changed after submitting.`)) return;
     setVoteSaving(true);
-    const { data, error } = await supabase
-      .from("participants")
-      .update({ favorite: id })
-      .eq("email", participant.email)
-      .select()
-      .single();
-    if (!error) {
-      setFavorite(id);
-      onUpdate(data);
-    }
+    const { data, error } = await supabase.from("participants").update({ favorite: id }).eq("email", participant.email).select().single();
+    if (!error) { setFavorite(id); onUpdate(data); }
     setVoteSaving(false);
   };
 
@@ -153,135 +180,108 @@ This cannot be changed after submitting.`)) return;
   const canVote = visited.length >= 1;
 
   return (
-    <div style={{ background: "#0d0d1f", minHeight: "100vh", paddingBottom: 40, fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-      {/* Header */}
-      <div style={{ background: "linear-gradient(180deg, #1a0e00 0%, #0d0d1f 100%)", borderBottom: "1px solid #2a1f0a", padding: "1.25rem 1rem", textAlign: "center" }}>
-        <div style={{ fontSize: 13, letterSpacing: "0.2em", color: "#7a6a3a", textTransform: "uppercase", marginBottom: 4 }}>Grand Rapids · Michigan Street</div>
-        <h1 style={{ fontFamily: "'Georgia', serif", fontSize: "clamp(24px, 4vw, 38px)", fontWeight: 700, margin: 0, color: "#c89c3c" }}>🍟 Poutine Week</h1>
-        <div style={{ color: "#5a5a6a", fontSize: 12, marginTop: 6 }}>Signed in as <span style={{ color: "#c89c3c" }}>{participant.email}</span></div>
+    <div className="poutine-app">
+      <style>{css}</style>
+      <div className="header">
+        <div>
+          <div className="header-title">🍟 POUTINE WEEK</div>
+          <div className="header-email">{participant.email}</div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, color: "#FFD000", letterSpacing: "0.1em" }}>SEPT 16–27</div>
+          <div style={{ fontSize: 11, color: "#555" }}>Michigan Street GR</div>
+        </div>
       </div>
 
-      <div style={{ maxWidth: 680, margin: "0 auto", padding: "1.5rem 1rem" }}>
+      <div className="main">
+        {/* Step 1 */}
+        <div className="step-header">
+          <div className="step-num">1</div>
+          <div>
+            <div className="step-title">WHERE HAVE YOU EATEN?</div>
+            <div className="step-desc">Check off each restaurant you&apos;ve visited. Come back and add more as you go!</div>
+          </div>
+        </div>
 
-        {/* Step 1: Mark visited */}
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <div style={{ background: "#c89c3c", color: "#1a1408", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>1</div>
-            <div>
-              <div style={{ color: "#f0e6c8", fontWeight: 600, fontSize: 16 }}>Which restaurants have you visited?</div>
-              <div style={{ color: "#5a5a7a", fontSize: 12, marginTop: 2 }}>Check off each place you've tried. Come back and add more as you go!</div>
+        <div className="rest-grid">
+          {RESTAURANTS.map(r => {
+            const isVisited = visited.includes(r.id);
+            const isFav = favorite === r.id;
+            return (
+              <div key={r.id} className={`rest-card${isFav ? " favorite" : isVisited ? " visited" : ""}${isFav ? " disabled" : ""}`} onClick={() => toggleVisited(r.id)}>
+                <div className={`rest-check${isFav ? " fav" : isVisited ? " checked" : ""}`}>
+                  {isFav ? "★" : isVisited ? "✓" : ""}
+                </div>
+                <span className="rest-emoji">{r.emoji}</span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="rest-name">{r.name}</div>
+                  <div className="rest-desc">{r.description}</div>
+                </div>
+                {isFav && <span className="rest-tag">MY PICK</span>}
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="save-row">
+          <button className="btn-primary" onClick={saveVisited} disabled={saving}>
+            {saving ? "SAVING..." : "SAVE MY VISITS"}
+          </button>
+          {savedMsg && <span className="save-ok">✓ {savedMsg}</span>}
+          <span className="save-count">{visited.length} / {RESTAURANTS.length} visited</span>
+        </div>
+
+        <hr className="divider" />
+
+        {/* Step 2 */}
+        <div className="step-header">
+          <div className={`step-num${canVote ? "" : " inactive"}`}>2</div>
+          <div>
+            <div className={`step-title${canVote ? "" : " inactive"}`}>WHICH IS YOUR FAVOURITE?</div>
+            <div className="step-desc">
+              {favorite ? "Your vote has been cast — thank you!" : canVote ? "Visit at least one restaurant, then cast your vote." : "Check off your visits above first."}
             </div>
           </div>
+        </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-            {RESTAURANTS.map(r => {
-              const isVisited = visited.includes(r.id);
+        {canVote && !favorite && (
+          <div className="warning-box">
+            <span style={{ fontSize: 18 }}>⚠️</span>
+            <span><strong>One vote only.</strong> Once submitted, your choice cannot be changed.</span>
+          </div>
+        )}
+
+        {favorite && (
+          <div style={{ background: "#1f1a00", border: "2px solid #FFD000", borderRadius: 2, padding: "14px 18px", marginBottom: 16, display: "flex", alignItems: "center", gap: 12 }}>
+            <span style={{ fontSize: 24 }}>{RESTAURANTS.find(r => r.id === favorite)?.emoji}</span>
+            <div>
+              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 13, color: "#FFD000", letterSpacing: "0.1em" }}>YOUR VOTE</div>
+              <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: 22, color: "#fff" }}>{RESTAURANTS.find(r => r.id === favorite)?.name}</div>
+            </div>
+            <span style={{ marginLeft: "auto", fontSize: 24 }}>🏆</span>
+          </div>
+        )}
+
+        {canVote && (
+          <div className="rest-grid">
+            {visitedRestaurants.map(r => {
               const isFav = favorite === r.id;
+              const isOther = favorite && !isFav;
               return (
-                <div
-                  key={r.id}
-                  onClick={() => toggleVisited(r.id)}
-                  style={{
-                    background: isVisited ? (isFav ? "linear-gradient(135deg, #1e1608, #2a1f0a)" : "#0f1e0f") : "#16213e",
-                    border: isFav ? "2px solid #c89c3c" : isVisited ? "1.5px solid #2a5a2a" : "1.5px solid #2a2a4a",
-                    borderRadius: 12, padding: "0.9rem 1rem",
-                    cursor: isFav ? "default" : "pointer",
-                    display: "flex", alignItems: "center", gap: 12,
-                    transition: "all 0.15s",
-                    userSelect: "none"
-                  }}
-                >
-                  <div style={{
-                    width: 22, height: 22, borderRadius: 6, flexShrink: 0,
-                    background: isVisited ? (isFav ? "#c89c3c" : "#2a8a2a") : "transparent",
-                    border: isVisited ? "none" : "2px solid #3a3a5a",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 13, color: "#fff", fontWeight: 700
-                  }}>
-                    {isVisited ? (isFav ? "★" : "✓") : ""}
-                  </div>
-                  <span style={{ fontSize: 22 }}>{r.emoji}</span>
+                <div key={r.id} className={`vote-card${isFav ? " chosen" : isOther ? " faded" : ""}`} onClick={() => !favorite && castVote(r.id)}>
+                  <span style={{ fontSize: 26 }}>{r.emoji}</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ color: isVisited ? "#f0e6c8" : "#8a8aaa", fontWeight: 600, fontSize: 14 }}>{r.name}</div>
-                    <div style={{ color: "#5a5a7a", fontSize: 11, marginTop: 1 }}>{r.description}</div>
+                    <div className={`vote-name${isFav ? " chosen" : ""}`}>{r.name}</div>
+                    <div className="vote-desc">{r.description}</div>
                   </div>
-                  {isFav && <div style={{ color: "#c89c3c", fontSize: 11, fontWeight: 700, flexShrink: 0 }}>YOUR PICK</div>}
+                  <span className={`vote-arrow${isFav ? " chosen" : ""}`}>{isFav ? "★" : !favorite ? "→" : ""}</span>
                 </div>
               );
             })}
           </div>
+        )}
 
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14 }}>
-            <button
-              onClick={saveVisited}
-              disabled={saving}
-              style={{
-                background: "linear-gradient(90deg, #c89c3c, #e8b94f)", color: "#1a1408",
-                border: "none", borderRadius: 8, padding: "9px 22px",
-                fontWeight: 700, fontSize: 13, cursor: "pointer", fontFamily: "inherit"
-              }}
-            >
-              {saving ? "Saving..." : "Save My Visits"}
-            </button>
-            {savedMsg && <span style={{ color: "#2a9d8f", fontSize: 13, fontWeight: 600 }}>{savedMsg}</span>}
-            <span style={{ color: "#5a5a7a", fontSize: 12, marginLeft: "auto" }}>{visited.length} of {RESTAURANTS.length} visited</span>
-          </div>
-        </div>
-
-        {/* Step 2: Cast vote */}
-        <div style={{ borderTop: "1px solid #1e1e3a", paddingTop: 24 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <div style={{ background: canVote ? "#c89c3c" : "#2a2a4a", color: canVote ? "#1a1408" : "#5a5a7a", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13, flexShrink: 0 }}>2</div>
-            <div>
-              <div style={{ color: canVote ? "#f0e6c8" : "#5a5a7a", fontWeight: 600, fontSize: 16 }}>Which is your favourite?</div>
-              <div style={{ color: "#5a5a7a", fontSize: 12, marginTop: 2 }}>
-                {favorite ? "Your vote has been cast — thank you!" : canVote ? "⚠️ This cannot be changed once submitted. Choose wisely!" : "Visit at least one restaurant first."}
-              </div>
-            </div>
-          </div>
-
-          {canVote && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 10 }}>
-              {visitedRestaurants.map(r => {
-                const isFav = favorite === r.id;
-                const isOtherFav = favorite && !isFav;
-                return (
-                  <div
-                    key={r.id}
-                    onClick={() => !favorite && castVote(r.id)}
-                    style={{
-                      background: isFav ? "linear-gradient(135deg, #1e1608, #2a1f0a)" : "#16213e",
-                      border: isFav ? "2px solid #c89c3c" : "1.5px solid #2a2a4a",
-                      borderRadius: 12, padding: "1rem",
-                      cursor: favorite ? "default" : "pointer",
-                      display: "flex", alignItems: "center", gap: 12,
-                      opacity: isOtherFav ? 0.4 : 1,
-                      transition: "all 0.15s",
-                    }}
-                    onMouseEnter={e => { if (!favorite) e.currentTarget.style.borderColor = "#c89c3c"; }}
-                    onMouseLeave={e => { if (!isFav) e.currentTarget.style.borderColor = "#2a2a4a"; }}
-                  >
-                    <span style={{ fontSize: 26 }}>{r.emoji}</span>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ color: isFav ? "#f0d080" : "#c0b8d0", fontWeight: 700, fontSize: 15, fontFamily: "'Georgia', serif" }}>{r.name}</div>
-                      <div style={{ color: "#5a5a7a", fontSize: 11, marginTop: 2 }}>{r.description}</div>
-                    </div>
-                    {isFav && (
-                      <div style={{ background: "rgba(200,156,60,0.2)", border: "1px solid #c89c3c", borderRadius: 20, padding: "4px 12px", color: "#c89c3c", fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
-                        ★ My Pick
-                      </div>
-                    )}
-                    {!favorite && (
-                      <div style={{ color: "#3a3a6a", fontSize: 12, flexShrink: 0, textAlign: "right", lineHeight: 1.4 }}>Tap to vote</div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-
-          {voteSaving && <div style={{ color: "#c89c3c", fontSize: 13, marginTop: 10 }}>Saving your vote...</div>}
-        </div>
+        {voteSaving && <div style={{ color: "#FFD000", fontSize: 13, marginTop: 12, fontFamily: "'Bebas Neue', sans-serif", letterSpacing: "0.1em" }}>SAVING YOUR VOTE...</div>}
       </div>
     </div>
   );
@@ -289,8 +289,6 @@ This cannot be changed after submitting.`)) return;
 
 export default function Home() {
   const [participant, setParticipant] = useState(null);
-  const [quoteIdx] = useState(Math.floor(Math.random() * GRAVY_QUOTES.length));
-
   return participant
     ? <MainApp participant={participant} onUpdate={setParticipant} />
     : <EmailGate onEnter={setParticipant} />;
