@@ -79,6 +79,17 @@ const css = `
   .vote-desc { font-size: 11px; color: #666; margin-top: 3px; }
   .voted-banner { background: #1f1a00; border: 2px solid #FFD000; border-radius: 2px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px; }
   .loading-screen { min-height: 100vh; background: #111; display: flex; align-items: center; justify-content: center; font-family: 'GravySans', sans-serif; color: #FFD000; font-size: 22px; letter-spacing: 0.1em; }
+  /* How it works */
+  .how-section { width: 100%; max-width: 900px; margin: 0 auto 48px; padding: 0 1rem; }
+  .how-title { font-family: 'GravySans', sans-serif; font-size: clamp(28px, 5vw, 42px); color: #fff; text-align: center; letter-spacing: 0.05em; margin-bottom: 28px; }
+  .how-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+  .how-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 4px; overflow: hidden; }
+  .how-img { width: 100%; aspect-ratio: 1; object-fit: cover; display: block; background: #222; }
+  .how-body { padding: 14px; background: #1a1a1a; }
+  .how-step { font-family: 'GravySans', sans-serif; font-size: 12px; color: #FFD000; letter-spacing: 0.15em; margin-bottom: 4px; }
+  .how-name { font-family: 'GravySans', sans-serif; font-size: 20px; color: #fff; line-height: 1.1; margin-bottom: 6px; }
+  .how-desc { font-size: 12px; color: #888; line-height: 1.5; }
+
 `;
 
 function Nav({ onOpenTracker }) {
@@ -145,6 +156,27 @@ function EmailGate({ onEnter }) {
         <span className="gate-badge">Michigan Street · Grand Rapids</span>
         <h1 className="gate-title">POUTINE<br/>WEEK</h1>
         <p className="gate-sub">September 16–27, 2026 · Cast your vote</p>
+
+        <div className="how-section">
+          <div className="how-title">HOW IT WORKS</div>
+          <div className="how-grid">
+            {[
+              { step: "STEP 1", name: "GET A PASSPORT", desc: "Pick up your passport at any participating restaurant when the event kicks off.", img: "https://mistreet.org/wp-content/uploads/2026/04/PoutineWeek2025_Passport_Mockup_V2-scaled.png" },
+              { step: "STEP 2", name: "EAT POUTINE", desc: "Visit at least 4 locations and collect a stamp at each. More than 4? Strongly encouraged.", img: "https://mistreet.org/wp-content/uploads/2026/04/DSC02048-scaled.png" },
+              { step: "STEP 3", name: "VOTE", desc: "Cast your vote online for your favourite. Voting opens September 16.", img: "https://mistreet.org/wp-content/uploads/2026/05/vote.png" },
+              { step: "STEP 4", name: "GET A SHIRT", desc: "4 stamps + your vote = a free Poutine Week tee. Pick up your shirt at 7 Monks.", img: "https://mistreet.org/wp-content/uploads/2026/05/D1-Shirt_CB.png" },
+            ].map(s => (
+              <div key={s.step} className="how-card">
+                <img className="how-img" src={s.img} alt={s.name} />
+                <div className="how-body">
+                  <div className="how-step">{s.step}</div>
+                  <div className="how-name">{s.name}</div>
+                  <div className="how-desc">{s.desc}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
         <div className="gate-card">
           <div className="gate-label">Your Email Address</div>
           <input className="gate-input" type="email" placeholder="you@email.com" value={email}
