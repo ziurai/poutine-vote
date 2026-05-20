@@ -101,9 +101,8 @@ export default function AdminPage() {
   };
 
   const resetAllVotes = async () => {
-    if (!window.confirm('Reset ALL votes and visits for every participant?
+    if (!window.confirm('Reset ALL votes and visits for every participant? This cannot be undone.')) return;
 
-This cannot be undone.')) return;
     const { error } = await supabase
       .from('participants')
       .update({ visited: [], favorite: null })
