@@ -8,43 +8,46 @@ const supabase = createClient(
 );
 
 const RESTAURANTS = [
-  { id: "brewery_vivant", name: "Brewery Vivant", emoji: "🍺" },
-  { id: "ganders", name: "Ganders at the B.O.B.", emoji: "🏢" },
-  { id: "barrio", name: "Barrio", emoji: "🌶️" },
-  { id: "the_meanwhile", name: "The Meanwhile Bar", emoji: "🎸" },
-  { id: "kitchen_by_lons", name: "Kitchen by Lon's", emoji: "🍴" },
-  { id: "terra_grt", name: "Terra GR", emoji: "🌱" },
-  { id: "rockford_brewing", name: "Rockford Brewing", emoji: "🍻" },
-  { id: "the_cheshire", name: "The Cheshire", emoji: "🐱" },
+  { id: "brewery_vivant", name: "Brewery Vivant", emoji: "" },
+  { id: "ganders", name: "Ganders at the B.O.B.", emoji: "" },
+  { id: "barrio", name: "Barrio", emoji: "" },
+  { id: "the_meanwhile", name: "The Meanwhile Bar", emoji: "" },
+  { id: "kitchen_by_lons", name: "Kitchen by Lon's", emoji: "" },
+  { id: "terra_grt", name: "Terra GR", emoji: "" },
+  { id: "rockford_brewing", name: "Rockford Brewing", emoji: "" },
+  { id: "the_cheshire", name: "The Cheshire", emoji: "" },
 ];
 
-const medals = ["🥇", "🥈", "🥉"];
+const medals = ["#1", "#2", "#3"];
 
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;600;700&display=swap');
+  @font-face { font-family: 'GravySans'; src: url('/fonts/GravySans.woff') format('woff'); font-weight: 400; }
+  @font-face { font-family: 'GravySans'; src: url('/fonts/GravySans-2.woff') format('woff'); font-weight: 700; }
+  @font-face { font-family: 'GravySans'; src: url('/fonts/GravySans-3.woff') format('woff'); font-weight: 900; }
+  @import url('https://fonts.googleapis.com/css2?family=family=DM+Sans:wght@400;600;700&display=swap');
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #111; }
   .admin-app { font-family: 'DM Sans', sans-serif; background: #111; min-height: 100vh; color: #fff; }
   .login-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; }
-  .login-title { font-family: 'Bebas Neue', sans-serif; font-size: 48px; color: #FFD000; margin-bottom: 4px; }
+  .login-title { font-family: 'GravySans', sans-serif; font-size: 48px; color: #FFD000; margin-bottom: 4px; }
   .login-sub { font-size: 12px; color: #666; letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 32px; }
   .login-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 4px; padding: 2rem; width: 100%; max-width: 380px; }
   .login-input { width: 100%; background: #111; border: 2px solid #333; border-radius: 2px; color: #fff; font-size: 15px; padding: 11px 14px; outline: none; font-family: 'DM Sans', sans-serif; margin-bottom: 10px; transition: border-color 0.15s; }
   .login-input:focus { border-color: #FFD000; }
-  .login-btn { width: 100%; background: #FFD000; color: #111; border: none; border-radius: 2px; padding: 13px; font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 0.1em; cursor: pointer; }
+  .login-btn { width: 100%; background: #FFD000; color: #111; border: none; border-radius: 2px; padding: 13px; font-family: 'GravySans', sans-serif; font-size: 20px; letter-spacing: 0.1em; cursor: pointer; }
   .login-btn:disabled { background: #333; color: #555; cursor: not-allowed; }
   .login-error { color: #ff4444; font-size: 13px; margin-bottom: 10px; }
   .admin-header { background: #111; border-bottom: 3px solid #FFD000; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; }
-  .admin-title { font-family: 'Bebas Neue', sans-serif; font-size: 26px; color: #FFD000; letter-spacing: 0.06em; }
+  .admin-title { font-family: 'GravySans', sans-serif; font-size: 26px; color: #FFD000; letter-spacing: 0.06em; }
   .btn-ghost { background: transparent; color: #666; border: 1px solid #333; border-radius: 2px; padding: 6px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 12px; transition: border-color 0.15s, color 0.15s; }
   .btn-ghost:hover { border-color: #FFD000; color: #FFD000; }
   .btn-danger { background: transparent; color: #ff4444; border: 1px solid #ff4444; border-radius: 2px; padding: 6px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 12px; }
   .admin-main { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
   .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 32px; }
   .stat-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 2px; padding: 1.25rem; text-align: center; }
-  .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 40px; color: #FFD000; line-height: 1; }
+  .stat-num { font-family: 'GravySans', sans-serif; font-size: 40px; color: #FFD000; line-height: 1; }
   .stat-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
-  .section-label { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 0.2em; color: #555; margin-bottom: 12px; border-bottom: 1px solid #1f1f1f; padding-bottom: 8px; }
+  .section-label { font-family: 'GravySans', sans-serif; font-size: 13px; letter-spacing: 0.2em; color: #555; margin-bottom: 12px; border-bottom: 1px solid #1f1f1f; padding-bottom: 8px; }
   .rank-row { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 2px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
   .rank-row.top { border-color: #FFD000; background: #1f1a00; }
   .rank-bar-wrap { flex: 1; }
@@ -52,7 +55,7 @@ const css = `
   .rank-name.top { color: #FFD000; }
   .rank-bar-bg { background: #111; border-radius: 2px; height: 4px; overflow: hidden; }
   .rank-bar { height: 100%; background: #FFD000; border-radius: 2px; transition: width 0.8s ease; }
-  .rank-votes { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: #FFD000; min-width: 32px; text-align: right; }
+  .rank-votes { font-family: 'GravySans', sans-serif; font-size: 22px; color: #FFD000; min-width: 32px; text-align: right; }
   .rank-visits { font-size: 11px; color: #666; }
   .participant-row { background: #151515; border: 1px solid #1f1f1f; border-radius: 2px; padding: 10px 14px; display: flex; align-items: center; gap: 12px; margin-bottom: 4px; }
   .p-email { font-size: 13px; color: #aaa; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -79,7 +82,7 @@ function LoginForm() {
     <div className="admin-app">
       <style>{css}</style>
       <div className="login-wrap">
-        <div className="login-title">🏆 ADMIN</div>
+        <div className="login-title"> ADMIN</div>
         <div className="login-sub">Poutine Week · Leaderboard Access</div>
         <div className="login-card">
           <input className="login-input" type="email" placeholder="Email" value={email} onChange={e => { setEmail(e.target.value); setError(""); }} />
@@ -99,7 +102,7 @@ export default function AdminPage() {
   const [dataLoading, setDataLoading] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false); });
+    document.title = "Poutine Week — Admin"; supabase.auth.getSession().then(({ data }) => { setSession(data.session); setLoading(false); });
     const { data: listener } = supabase.auth.onAuthStateChange((_e, s) => { setSession(s); if (s) loadData(); });
     return () => listener.subscription.unsubscribe();
   }, []);
@@ -140,10 +143,10 @@ export default function AdminPage() {
     <div className="admin-app">
       <style>{css}</style>
       <div className="admin-header">
-        <div className="admin-title">🏆 POUTINE WEEK · ADMIN</div>
+        <div className="admin-title">POUTINE WEEK · ADMIN</div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn-ghost" onClick={loadData}>{dataLoading ? "..." : "↻ Refresh"}</button>
-          <button className="btn-danger" onClick={resetAllVotes}>🗑 Reset All</button>
+          <button className="btn-danger" onClick={resetAllVotes}>Reset All</button>
           <button className="btn-ghost" onClick={signOut}>Sign out</button>
         </div>
       </div>
