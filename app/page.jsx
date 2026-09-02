@@ -16,8 +16,9 @@ const css = `
   body { background: #111; }
   .app { font-family: 'DM Sans', sans-serif; background: #111; min-height: 100vh; color: #fff; }
   .nav { background: #111; border-bottom: 3px solid #FFD000; padding: 0 1.5rem; display: flex; align-items: center; height: 60px; gap: 0; position: sticky; top: 0; z-index: 100; }
-  .nav-logo { display: flex; align-items: center; text-decoration: none; margin-right: auto; }
-  .nav-logo img { height: 180px; width: auto; }
+  .nav-logo { display: flex; align-items: flex-start; text-decoration: none; margin-right: auto; align-self: flex-start; padding-top: 12px; flex-shrink: 0; }
+  .nav-logo img { height: 180px; width: auto; flex-shrink: 0; }
+  @media (max-width: 768px) { .nav-logo { align-self: center; padding-top: 0; } .nav-logo img { height: 36px; } }
   .nav-link { color: #aaa; text-decoration: none; font-size: 13px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; padding: 0 16px; height: 60px; display: flex; align-items: center; border-bottom: 3px solid transparent; margin-bottom: -3px; transition: color 0.15s, border-color 0.15s; white-space: nowrap; }
   .nav-link:hover { color: #FFD000; border-bottom-color: #FFD000; }
   .nav-btn { background: #FFD000; color: #111; border: none; border-radius: 2px; padding: 7px 16px; font-family: 'GravySans', sans-serif; font-size: 15px; letter-spacing: 0.06em; cursor: pointer; margin-left: 12px; transition: background 0.15s; white-space: nowrap; }
