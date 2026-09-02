@@ -1,6 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
+  title: "Poutine Week · Michigan Street",
   icons: {
     icon: "https://mistreet.org/wp-content/uploads/2022/07/Favicon.svg",
   },
