@@ -24,12 +24,21 @@ const css = `
   .nav-btn { background: #FFD000; color: #111; border: none; border-radius: 2px; padding: 7px 16px; font-family: 'GravySans', sans-serif; font-size: 15px; letter-spacing: 0.06em; cursor: pointer; margin-left: 12px; transition: background 0.15s; white-space: nowrap; }
   .nav-btn:hover { background: #ffe033; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
-  .modal { background: #1a1a1a; border: 2px solid #FFD000; border-radius: 4px; width: 100%; max-width: 780px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
+  .modal { background: #1a1a1a; border: 2px solid #FFD000; border-radius: 4px; width: 100%; max-width: 1000px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
   .modal-header { padding: 10px 12px; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; }
   .modal-close { background: transparent; border: 1px solid #444; border-radius: 2px; color: #aaa; font-size: 18px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .modal-close:hover { border-color: #FFD000; color: #FFD000; }
-  .modal-body { overflow-y: auto; }
+  .modal-body { overflow-y: auto; display: grid; grid-template-columns: 1.05fr 1fr; gap: 24px; padding: 0 20px 22px; align-items: start; }
   .modal-body img { width: 100%; height: auto; display: block; }
+  .gt-copy { font-size: 14px; color: #b4b4b4; line-height: 1.6; }
+  .gt-copy p { margin-bottom: 12px; }
+  .gt-copy p:last-child { margin-bottom: 0; }
+  .gt-title { font-family: 'GravySans', sans-serif; font-size: 26px; color: #FFD000; letter-spacing: 0.04em; line-height: 1.1; margin-bottom: 14px; }
+  .gt-when { background: #111; border-left: 3px solid #FFD000; padding: 10px 14px; margin: 0 0 14px; }
+  .gt-when div { font-family: 'GravySans', sans-serif; font-size: 17px; color: #fff; letter-spacing: 0.03em; }
+  .gt-when div + div { margin-top: 3px; }
+  .gt-free { color: #FFD000; font-weight: 700; }
+  @media (max-width: 820px) { .modal-body { grid-template-columns: 1fr; gap: 18px; } }
   .gate-wrap { min-height: calc(100vh - 63px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; }
   .gate-badge { background: #FFD000; color: #111; font-family: 'GravySans', sans-serif; font-size: 13px; letter-spacing: 0.15em; padding: 4px 14px; border-radius: 2px; margin-bottom: 18px; display: inline-block; }
   .gate-title { font-family: 'GravySans', sans-serif; font-size: clamp(56px, 11vw, 96px); line-height: 0.9; color: #FFD000; text-align: center; margin-bottom: 8px; }
@@ -114,6 +123,17 @@ function GravyTrainModal({ onClose }) {
         </div>
         <div className="modal-body">
           <img src="/gravy-train-map.webp" alt="The Gravy Train trolley route map" />
+          <div className="gt-copy">
+            <div className="gt-title">HOP ON THE GRAVY TRAIN! 🚂</div>
+            <p>As part of Michigan Street Poutine Week (Sept 16–27), we’re bringing you the ultimate ride to flavor town, the Gravy Train Trolley!</p>
+            <p className="gt-free">No tickets needed, just show up and ride!</p>
+            <div className="gt-when">
+              <div>📅 SATURDAYS, SEPT 19 &amp; 26</div>
+              <div>🕐 5–11 PM</div>
+            </div>
+            <p>The trolley will be making stops at Vander Mill, 7 Monks, and Elbow Room, so you can easily hop on and off while sampling all the cheesy, savory, gravy-loaded goodness Poutine Week has to offer!</p>
+            <p>Come taste, vote, and help crown this year’s poutine champion, then let the Gravy Train carry you to your next stop. 🍟</p>
+          </div>
         </div>
       </div>
     </div>
