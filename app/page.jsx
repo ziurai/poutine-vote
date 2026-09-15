@@ -50,6 +50,8 @@ const css = `
   .gate-btn { width: 100%; margin-top: 12px; background: #FFD000; color: #111; border: none; border-radius: 2px; padding: 14px; font-family: 'GravySans', sans-serif; font-size: 22px; letter-spacing: 0.08em; cursor: pointer; transition: background 0.15s; }
   .gate-btn:hover { background: #ffe033; }
   .gate-btn:disabled { background: #444; color: #666; cursor: not-allowed; }
+  .gate-hint { font-size: 12px; color: #777; line-height: 1.5; margin-top: 8px; }
+  .gate-hint strong { color: #FFD000; font-weight: 700; }
   .gate-error { color: #ff4444; font-size: 13px; margin-top: 8px; }
   .main { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
   .user-bar { display: flex; align-items: center; justify-content: space-between; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 2px; padding: 8px 14px; margin-bottom: 24px; }
@@ -204,6 +206,7 @@ function EmailGate({ onEnter }) {
             onChange={e => { setEmail(e.target.value); setError(""); }}
             onKeyDown={e => e.key === "Enter" && handleSubmit()}
           />
+          <div className="gate-hint">Use the <strong>same email</strong> every visit so all your stamps stay together.</div>
           {error && <div className="gate-error">{error}</div>}
           <button className="gate-btn" onClick={handleSubmit} disabled={loading}>
             {loading ? "LOADING..." : "LET'S GO"}
