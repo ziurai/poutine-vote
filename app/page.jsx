@@ -25,11 +25,11 @@ const css = `
   .nav-btn:hover { background: #ffe033; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem; }
   .modal { background: #1a1a1a; border: 2px solid #FFD000; border-radius: 4px; width: 100%; max-width: 780px; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
-  .modal-header { padding: 14px 18px; border-bottom: 2px solid #2a2a2a; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
-  .modal-title { font-family: 'GravySans', sans-serif; font-size: 22px; color: #FFD000; letter-spacing: 0.06em; }
+  .modal-header { padding: 10px 12px; display: flex; align-items: center; justify-content: flex-end; flex-shrink: 0; }
   .modal-close { background: transparent; border: 1px solid #444; border-radius: 2px; color: #aaa; font-size: 18px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
   .modal-close:hover { border-color: #FFD000; color: #FFD000; }
-  .modal-body iframe { width: 100%; height: 500px; border: none; display: block; }
+  .modal-body { overflow-y: auto; }
+  .modal-body img { width: 100%; height: auto; display: block; }
   .gate-wrap { min-height: calc(100vh - 63px); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; }
   .gate-badge { background: #FFD000; color: #111; font-family: 'GravySans', sans-serif; font-size: 13px; letter-spacing: 0.15em; padding: 4px 14px; border-radius: 2px; margin-bottom: 18px; display: inline-block; }
   .gate-title { font-family: 'GravySans', sans-serif; font-size: clamp(56px, 11vw, 96px); line-height: 0.9; color: #FFD000; text-align: center; margin-bottom: 8px; }
@@ -93,14 +93,14 @@ const css = `
 
 `;
 
-function Nav({ onOpenTracker }) {
+function Nav({ onOpenMap }) {
   return (
     <nav className="nav">
       <a className="nav-logo" href="https://mistreet.org" target="_blank" rel="noopener noreferrer">
         <img src="https://mistreet.org/wp-content/uploads/2022/03/LOGO-SYSTEMS-10.png" alt="Michigan Street" />
       </a>
       <a className="nav-link" href="https://mistreet.org" target="_blank" rel="noopener noreferrer">mistreet.org</a>
-      <button className="nav-btn" onClick={onOpenTracker}>Gravy Train Tracker</button>
+      <button className="nav-btn" onClick={onOpenMap}>Gravy Train</button>
     </nav>
   );
 }
@@ -110,11 +110,10 @@ function GravyTrainModal({ onClose }) {
     <div className="modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
       <div className="modal">
         <div className="modal-header">
-          <span className="modal-title">GRAVY TRAIN TRACKER</span>
           <button className="modal-close" onClick={onClose}>x</button>
         </div>
         <div className="modal-body">
-          <iframe src="https://gravy-train-tracker.vercel.app/embed" title="Gravy Train Tracker" allowFullScreen />
+          <img src="/gravy-train-map.webp" alt="The Gravy Train trolley route map" />
         </div>
       </div>
     </div>
@@ -125,7 +124,7 @@ function EmailGate({ onEnter }) {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [trackerOpen, setTrackerOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
 
   useEffect(() => { document.title = "Poutine Week — Vote"; }, []);
 
@@ -151,8 +150,8 @@ function EmailGate({ onEnter }) {
   return (
     <div className="app">
       <style>{css}</style>
-      <Nav onOpenTracker={() => setTrackerOpen(true)} />
-      {trackerOpen && <GravyTrainModal onClose={() => setTrackerOpen(false)} />}
+      <Nav onOpenMap={() => setMapOpen(true)} />
+      {mapOpen && <GravyTrainModal onClose={() => setMapOpen(false)} />}
       <div className="gate-wrap">
         <span className="gate-badge">Michigan Street · Grand Rapids</span>
         <h1 className="gate-title">POUTINE<br/>WEEK</h1>
@@ -203,7 +202,7 @@ function MainApp({ participant, onUpdate }) {
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
   const [voteSaving, setVoteSaving] = useState(false);
-  const [trackerOpen, setTrackerOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
 
   useEffect(() => {
     document.title = "Poutine Week — Vote";
@@ -243,8 +242,8 @@ function MainApp({ participant, onUpdate }) {
   return (
     <div className="app">
       <style>{css}</style>
-      <Nav onOpenTracker={() => setTrackerOpen(true)} />
-      {trackerOpen && <GravyTrainModal onClose={() => setTrackerOpen(false)} />}
+      <Nav onOpenMap={() => setMapOpen(true)} />
+      {mapOpen && <GravyTrainModal onClose={() => setMapOpen(false)} />}
       <div className="main">
         <div className="user-bar">
           <span className="user-email">Signed in as {participant.email}</span>
