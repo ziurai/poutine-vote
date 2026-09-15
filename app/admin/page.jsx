@@ -41,7 +41,8 @@ const css = `
   .section-label { font-family: 'GravySans', sans-serif; font-size: 13px; letter-spacing: 0.2em; color: #555; margin-bottom: 12px; border-bottom: 1px solid #1f1f1f; padding-bottom: 8px; }
   .rank-row { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 2px; padding: 12px 16px; display: flex; align-items: center; gap: 12px; margin-bottom: 6px; }
   .rank-row.top { border-color: #FFD000; background: #1f1a00; }
-  .rank-name { font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 4px; }
+  .rank-name { font-weight: 700; font-size: 14px; color: #fff; margin-bottom: 2px; }
+  .rank-desc { font-size: 11px; color: #666; margin-bottom: 6px; }
   .rank-name.top { color: #FFD000; }
   .rank-bar-bg { background: #111; border-radius: 2px; height: 4px; overflow: hidden; margin-top: 4px; }
   .rank-bar { height: 100%; background: #FFD000; border-radius: 2px; }
@@ -288,6 +289,7 @@ export default function AdminPage() {
                 <span style={{ fontSize: 14, fontWeight: 700, minWidth: 28, color: "#FFD000" }}>{r.votes > 0 ? (medals[i] || "#" + (i + 1)) : "—"}</span>
                 <div style={{ flex: 1 }}>
                   <div className={`rank-name${i === 0 && r.votes > 0 ? " top" : ""}`}>{r.name}</div>
+                  {r.description && <div className="rank-desc">{r.description}</div>}
                   <div className="rank-bar-bg"><div className="rank-bar" style={{ width: (r.votes / maxVotes * 100) + "%" }} /></div>
                   <div className="rank-visits">{r.visits} visited</div>
                 </div>
