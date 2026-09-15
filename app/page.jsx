@@ -165,7 +165,7 @@ function EmailGate({ onEnter }) {
               { step: "STEP 1", name: "GET A PASSPORT", desc: "Pick up your passport at any participating restaurant when the event kicks off.", img: "/passport-2026.webp" },
               { step: "STEP 2", name: "EAT POUTINE", desc: "Visit at least 4 locations and collect a stamp at each. More than 4? Strongly encouraged.", img: "https://mistreet.org/wp-content/uploads/2026/04/DSC02048-scaled.png" },
               { step: "STEP 3", name: "VOTE", desc: "Cast your vote online for your favourite. Voting opens September 16.", img: "https://mistreet.org/wp-content/uploads/2026/05/vote.png" },
-              { step: "STEP 4", name: "GET A SHIRT", desc: "4 stamps + your vote = a free Poutine Week tee. Pick up your shirt at 7 Monks.", img: "https://mistreet.org/wp-content/uploads/2026/05/D1-Shirt_CB.png" },
+              { step: "STEP 4", name: "GET A SHIRT", desc: "4 stamps + your vote = a free Poutine Week tee. Pick up your shirt at 7 Monks.", img: "/shirt-2026.webp" },
             ].map(s => (
               <div key={s.step} className="how-card">
                 <img className="how-img" src={s.img} alt={s.name} />
