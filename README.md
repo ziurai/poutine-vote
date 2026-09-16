@@ -1,36 +1,101 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Michigan Street Poutine Week
 
-## Getting Started
+Voting site for Michigan Street Poutine Week, Grand Rapids.
+Live at **https://poutine.mistreet.org**
 
-First, run the development server:
+Next.js 15 (App Router) + Supabase. Two pages, both client components.
+
+---
+
+## Getting set up
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone git@github.com:ziurai/poutine-vote.git
+cd poutine-vote
+npm install
+cp .env.example .env.local   # then fill it in - see below
+npm run dev                  # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Environment variables
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+`.env.local` is gitignored and you have to create it. See `.env.example` for
+the full list. If you have Vercel access, this fills it in for you:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+vercel link --yes --project poutine-vote
+vercel env pull .env.local
+```
 
-## Learn More
+Otherwise ask Alex for the two `NEXT_PUBLIC_SUPABASE_*` values. Those are the
+only ones needed to run the site. The three `MAILCHIMP_*` vars only affect
+`/api/subscribe`; without them that one route returns 500 and nothing else
+notices.
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Where things are
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Path | What it is |
+|---|---|
+| `app/page.jsx` | The entire public site - email gate, how-it-works, the passport/voting UI, the Gravy Train modal. All CSS is a template string at the top of the file. |
+| `app/admin/page.jsx` | `/admin` - leaderboard, restaurant editor, participant list. Same CSS-in-a-string pattern. |
+| `app/api/subscribe/route.js` | Posts new signups to Mailchimp. Fire-and-forget; failures are swallowed on the client. |
+| `app/layout.jsx` | Page title and favicon. **Do not add a `layout.tsx`** - Next resolves `.tsx` before `.jsx`, so it would silently shadow this file. |
+| `public/` | Images (WebP) and the GravySans fonts. |
 
-## Deploy on Vercel
+There is no component library. Tailwind is installed and `app/globals.css`
+imports it, but neither page uses a single utility class - all styling is in
+those template strings. Don't assume Tailwind works here without checking.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Restaurants are data, not code
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The restaurant list, votes, and stamps live in Supabase, not in the repo:
+
+- `restaurants` - name, description, `sort_order`, `active`
+- `participants` - email, `visited` (array of restaurant ids), `favorite`
+
+Edit restaurants at `/admin` → Restaurants. Changing the lineup needs no deploy.
+`/admin` is gated by Supabase Auth (email + password), so you need a user
+created in the Supabase project before you can get in.
+
+---
+
+## Deploying
+
+**Pushing to `main` publishes to the live public site within about 30 seconds.**
+There is no staging step and no review gate. During the event (Sept 16-27) the
+site is in active use, so check your work locally first.
+
+```bash
+npm run dev     # verify the change
+git push origin main
+```
+
+### The two-Vercel-project trap
+
+This repo is connected to **two** Vercel projects, and a push builds both:
+
+| Project | Serves | Notes |
+|---|---|---|
+| `poutine-vote` | **poutine.mistreet.org** - the real site | Has all five env vars |
+| `poutine-vote-bial` | redundant duplicate | Missing the Mailchimp vars, so `/api/subscribe` 500s there |
+
+**Verify your changes on https://poutine.mistreet.org, not on a `*.vercel.app`
+URL.** For 105 days the domain was served by a project that had stopped
+building, so pushes appeared to do nothing. `next.config.ts` now 308-redirects
+the `*.vercel.app` hosts to the real domain.
+
+Raw Vercel deployment URLs are behind Vercel SSO, so you need a seat on the
+Vercel team to open a preview build.
+
+---
+
+## Known rough edges
+
+- `npm run lint` fails: `eslint.config.mjs` imports `eslint-config-next/core-web-vitals`
+  without the `.js` extension. `npm run build` still succeeds.
+- `package.json` pins `engines.node` to `22.x`, but Vercel builds on 24.x.
+- The Supabase anon key is in this repo's git history from before it moved to
+  env vars. It's a public-by-design key (it ships in the browser bundle either
+  way), so row-level security is what actually protects the data.
