@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { AdminInsights } from "./insights";
 
 // Only this account may wipe participant progress. Note this is a UI guard
 // only - real enforcement has to live in Supabase row-level security.
@@ -35,8 +36,8 @@ const css = `
   .btn-danger { background: transparent; color: #ff4444; border: 1px solid #ff4444; border-radius: 2px; padding: 6px 14px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 12px; }
   .btn-yellow { background: #FFD000; color: #111; border: none; border-radius: 2px; padding: 6px 16px; cursor: pointer; font-family: 'GravySans', sans-serif; font-size: 15px; letter-spacing: 0.06em; }
   .admin-main { max-width: 720px; margin: 0 auto; padding: 2rem 1rem; }
-  .tabs { display: flex; gap: 0; border-bottom: 2px solid #2a2a2a; margin-bottom: 28px; }
-  .tab { background: transparent; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 10px 20px; color: #666; font-family: 'GravySans', sans-serif; font-size: 16px; letter-spacing: 0.06em; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
+  .tabs { display: flex; gap: 0; border-bottom: 2px solid #2a2a2a; margin-bottom: 28px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tab { flex-shrink: 0; white-space: nowrap; background: transparent; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 10px 18px; color: #666; font-family: 'GravySans', sans-serif; font-size: 16px; letter-spacing: 0.06em; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
   .tab.active { color: #FFD000; border-bottom-color: #FFD000; }
   .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 28px; }
   .stat-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 2px; padding: 1.25rem; text-align: center; }
@@ -285,6 +286,7 @@ export default function AdminPage() {
           <button className={`tab${tab === "leaderboard" ? " active" : ""}`} onClick={() => setTab("leaderboard")}>LEADERBOARD</button>
           <button className={`tab${tab === "restaurants" ? " active" : ""}`} onClick={() => setTab("restaurants")}>RESTAURANTS</button>
           <button className={`tab${tab === "participants" ? " active" : ""}`} onClick={() => setTab("participants")}>PARTICIPANTS</button>
+          <button className={`tab${tab === "insights" ? " active" : ""}`} onClick={() => setTab("insights")}>INSIGHTS</button>
         </div>
 
         {tab === "leaderboard" && (
@@ -327,6 +329,8 @@ export default function AdminPage() {
             })}
           </>
         )}
+
+        {tab === "insights" && <AdminInsights participants={participants} restaurants={restaurants} />}
       </div>
     </div>
   );
