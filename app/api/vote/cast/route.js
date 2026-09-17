@@ -33,7 +33,26 @@ export async function POST(request) {
     if (rErr) throw rErr;
     if (!rest) return Response.json({ error: "Unknown restaurant" }, { status: 400 });
 
-    // Conditional update: only rows whose favorite is still null are touched.
+    // Read the authoritative row first: a vote requires the person to have
+    // actually visited somewhere. The UI enforced this, but the API did not,
+    // which let 0-visit votes in through direct calls.
+    const { data: current, error: cErr } = await db
+      .from("participants")
+      .select("email, visited, favorite")
+      .eq("email", email)
+      .maybeSingle();
+    if (cErr) throw cErr;
+    if (!current) return Response.json({ error: "Not found" }, { status: 404 });
+
+    // Already voted: votes are final, return the existing choice unchanged.
+    if (current.favorite) return Response.json({ participant: current });
+
+    const visitCount = Array.isArray(current.visited) ? current.visited.length : 0;
+    if (visitCount < 1) {
+      return Response.json({ error: "Visit at least one restaurant before voting." }, { status: 400 });
+    }
+
+    // Conditional update: only write when favorite is still null (no overwrite).
     const { data: updated, error: uErr } = await db
       .from("participants")
       .update({ favorite })
@@ -45,16 +64,13 @@ export async function POST(request) {
     if (updated && updated.length === 1) {
       return Response.json({ participant: updated[0] });
     }
-
-    // Nothing updated: the participant already voted, or the row is missing.
-    // Return the current row so the client reflects the real state.
-    const { data: current } = await db
+    // Lost a race (voted in a concurrent request): return the stored row.
+    const { data: after } = await db
       .from("participants")
       .select("email, visited, favorite")
       .eq("email", email)
       .maybeSingle();
-    if (!current) return Response.json({ error: "Not found" }, { status: 404 });
-    return Response.json({ participant: current });
+    return Response.json({ participant: after || current });
   } catch (e) {
     console.error("vote/cast error:", e?.message || e);
     return Response.json({ error: "Server error" }, { status: 500 });
