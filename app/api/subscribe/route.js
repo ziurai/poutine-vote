@@ -1,3 +1,7 @@
+import crypto from "node:crypto";
+
+const TAG = "Poutine Week 2026 Participant";
+
 export async function POST(request) {
   try {
     const { email } = await request.json();
@@ -21,27 +25,38 @@ export async function POST(request) {
       return Response.json({ error: "Mailchimp is not configured" }, { status: 500 });
     }
 
-    const url = `https://${server}.api.mailchimp.com/3.0/lists/${audienceId}/members`;
+    const clean = email.trim().toLowerCase();
+    const hash = crypto.createHash("md5").update(clean).digest("hex");
+    const member = `https://${server}.api.mailchimp.com/3.0/lists/${audienceId}/members/${hash}`;
+    const headers = { Authorization: `apikey ${apiKey}`, "Content-Type": "application/json" };
 
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        Authorization: `apikey ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        email_address: email,
-        status: "subscribed",
-        tags: ["poutine-week-2026"],
-      }),
+    // PUT upserts. POSTing to /members 400s with "Member Exists" for anyone
+    // already in the audience, and the audience has thousands of contacts from
+    // previous years. status_if_new only subscribes genuinely new addresses, so
+    // this never resurrects someone who has unsubscribed.
+    const upsert = await fetch(member, {
+      method: "PUT",
+      headers,
+      body: JSON.stringify({ email_address: clean, status_if_new: "subscribed" }),
     });
 
-    const data = await response.json();
+    if (!upsert.ok) {
+      const detail = await upsert.json().catch(() => ({}));
+      console.error("Mailchimp upsert failed:", detail);
+      return Response.json({ error: detail.detail || "Mailchimp error" }, { status: 500 });
+    }
 
-    // 400 with "Member Exists" is fine — they're already on the list
-    if (!response.ok && data.title !== "Member Exists") {
-      console.error("Mailchimp error:", data);
-      return Response.json({ error: data.detail }, { status: 500 });
+    // Tags are ignored on member create/update and have to be set on their own
+    // endpoint. Returns 204 on success.
+    const tagged = await fetch(`${member}/tags`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ tags: [{ name: TAG, status: "active" }] }),
+    });
+
+    if (!tagged.ok) {
+      // The contact is subscribed either way, so don't fail the signup over a tag.
+      console.error("Mailchimp tagging failed:", tagged.status, await tagged.text().catch(() => ""));
     }
 
     return Response.json({ success: true });
