@@ -156,9 +156,13 @@ function EmailGate({ onEnter }) {
     setLoading(true); setError("");
     try {
       const res = await fetch("/api/vote/enter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) });
-      if (!res.ok) throw new Error("enter failed");
+      if (!res.ok) {
+        let msg = "Something went wrong. Please try again.";
+        try { const b = await res.json(); if (b?.error) msg = b.error; } catch (_) {}
+        setError(msg); setLoading(false); return;
+      }
       const { participant } = await res.json();
-      fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
+      fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: participant.email }) }).catch(() => {});
       onEnter(participant);
     } catch (e) { setError("Something went wrong. Please try again."); }
     setLoading(false);

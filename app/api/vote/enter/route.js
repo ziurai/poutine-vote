@@ -1,4 +1,5 @@
-import { getServiceClient, cleanEmail } from "../_lib/service";
+import { getServiceClient, normalizeEmail } from "../_lib/service";
+import { isValidFormat, isDisposableDomain, domainHasMail } from "../_lib/validate";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,9 +15,18 @@ export async function POST(request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const email = cleanEmail(body.email);
-    if (!email.includes("@")) {
-      return Response.json({ error: "Invalid email" }, { status: 400 });
+    const email = normalizeEmail(body.email);
+
+    // Gate fake / throwaway addresses before a row is ever created.
+    if (!isValidFormat(email)) {
+      return Response.json({ error: "Please enter a valid email address." }, { status: 400 });
+    }
+    if (isDisposableDomain(email)) {
+      return Response.json({ error: "Please use a permanent email address - temporary inboxes aren't allowed." }, { status: 400 });
+    }
+    const mail = await domainHasMail(email);
+    if (!mail.ok) {
+      return Response.json({ error: "That email address doesn't look right - please double-check it." }, { status: 400 });
     }
 
     const { data: existing, error: selErr } = await db

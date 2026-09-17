@@ -1,4 +1,4 @@
-import { getServiceClient, cleanEmail } from "../_lib/service";
+import { getServiceClient, normalizeEmail } from "../_lib/service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,7 +16,7 @@ export async function POST(request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const email = cleanEmail(body.email);
+    const email = normalizeEmail(body.email);
     const favorite = typeof body.favorite === "string" ? body.favorite : null;
     if (!email.includes("@")) {
       return Response.json({ error: "Invalid email" }, { status: 400 });
