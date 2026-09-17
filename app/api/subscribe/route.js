@@ -10,6 +10,17 @@ export async function POST(request) {
     const audienceId = process.env.MAILCHIMP_AUDIENCE_ID;
     const server = process.env.MAILCHIMP_SERVER;
 
+    // Without this, a missing or misnamed var silently becomes a request to
+    // https://undefined.api.mailchimp.com/... and surfaces as a generic 500.
+    if (!apiKey || !audienceId || !server) {
+      console.error("Mailchimp is not configured:", {
+        MAILCHIMP_API_KEY: Boolean(apiKey),
+        MAILCHIMP_AUDIENCE_ID: Boolean(audienceId),
+        MAILCHIMP_SERVER: Boolean(server),
+      });
+      return Response.json({ error: "Mailchimp is not configured" }, { status: 500 });
+    }
+
     const url = `https://${server}.api.mailchimp.com/3.0/lists/${audienceId}/members`;
 
     const response = await fetch(url, {

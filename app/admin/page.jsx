@@ -2,6 +2,10 @@
 import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 
+// Only this account may wipe participant progress. Note this is a UI guard
+// only - real enforcement has to live in Supabase row-level security.
+const OWNER_EMAIL = "alex@welldesignstudio.com";
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -231,8 +235,14 @@ export default function AdminPage() {
     setDataLoading(false);
   };
 
+  const isOwner = (session?.user?.email || "").trim().toLowerCase() === OWNER_EMAIL;
+
   const resetAllVotes = async () => {
-    if (!window.confirm("Reset ALL votes and visits for every participant? This cannot be undone.")) return;
+    if (!isOwner) return;
+    const typed = window.prompt(
+      `This erases the stamps and votes of all ${participants.length} participants. It cannot be undone.\n\nType RESET to confirm.`
+    );
+    if (typed !== "RESET") return;
     const { error } = await supabase.from("participants").update({ visited: [], favorite: null }).neq("email", "");
     if (!error) { await loadData(); alert("All votes and visits have been reset."); }
     else alert("Something went wrong: " + error.message);
@@ -264,7 +274,7 @@ export default function AdminPage() {
         <div className="admin-title">POUTINE WEEK — ADMIN</div>
         <div style={{ display: "flex", gap: 8 }}>
           <button className="btn-ghost" onClick={loadData}>{dataLoading ? "..." : "Refresh"}</button>
-          <button className="btn-danger" onClick={resetAllVotes}>Reset All Votes</button>
+          {isOwner && <button className="btn-danger" onClick={resetAllVotes}>Reset All Votes</button>}
           <button className="btn-ghost" onClick={signOut}>Sign out</button>
         </div>
       </div>
