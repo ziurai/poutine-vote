@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 // Only this account may wipe participant progress. Note this is a UI guard
 // only - real enforcement has to live in Supabase row-level security.
-const OWNER_EMAIL = "alex@welldesignstudio.com";
+const OWNER_EMAIL = "support@welldesignstudio.com";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
