@@ -1,8 +1,10 @@
 import { promises as dns } from "node:dns";
 import { DISPOSABLE_DOMAINS } from "./disposable.js";
 
-// Requires a local part, an @, and a dotted domain with a 2+ char TLD.
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+// Allow only characters real addresses use: alphanumerics plus . _ % + -
+// in the local part (not leading/trailing), and a normal dotted domain.
+// Rejects junk like "djfkla;djfl;@x.com" that a bare "has an @" check let through.
+const EMAIL_RE = /^[a-z0-9](?:[a-z0-9._%+-]*[a-z0-9])?@[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+$/;
 
 export function isValidFormat(email) {
   return EMAIL_RE.test(email);
