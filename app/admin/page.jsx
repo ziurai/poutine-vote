@@ -38,7 +38,7 @@ const css = `
   .tabs { display: flex; gap: 0; border-bottom: 2px solid #2a2a2a; margin-bottom: 28px; }
   .tab { background: transparent; border: none; border-bottom: 3px solid transparent; margin-bottom: -2px; padding: 10px 20px; color: #666; font-family: 'GravySans', sans-serif; font-size: 16px; letter-spacing: 0.06em; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
   .tab.active { color: #FFD000; border-bottom-color: #FFD000; }
-  .stat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 28px; }
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 28px; }
   .stat-card { background: #1a1a1a; border: 2px solid #2a2a2a; border-radius: 2px; padding: 1.25rem; text-align: center; }
   .stat-num { font-family: 'GravySans', sans-serif; font-size: 40px; color: #FFD000; line-height: 1; }
   .stat-label { font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.12em; margin-top: 4px; }
@@ -266,6 +266,7 @@ export default function AdminPage() {
 
   const maxVotes = Math.max(...ranked.map(r => r.votes), 1);
   const totalVoters = participants.filter(p => p.favorite).length;
+  const totalVisits = participants.reduce((sum, p) => sum + ((p.visited || []).length), 0);
 
   return (
     <div className="admin-app">
@@ -289,7 +290,7 @@ export default function AdminPage() {
         {tab === "leaderboard" && (
           <>
             <div className="stat-grid">
-              {[{ label: "Participants", value: participants.length }, { label: "Votes Cast", value: totalVoters }, { label: "Restaurants", value: restaurants.filter(r => r.active).length }].map(s => (
+              {[{ label: "Participants", value: participants.length }, { label: "Votes Cast", value: totalVoters }, { label: "Total Visits", value: totalVisits }, { label: "Restaurants", value: restaurants.filter(r => r.active).length }].map(s => (
                 <div key={s.label} className="stat-card"><div className="stat-num">{s.value}</div><div className="stat-label">{s.label}</div></div>
               ))}
             </div>
