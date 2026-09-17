@@ -61,18 +61,30 @@ function hourLabel(h) {
   return h < 12 ? `${h}a` : `${h - 12}p`;
 }
 
+// created_at is a `timestamp without time zone` holding UTC with no marker, so
+// JS would otherwise parse it as the viewer's local time. Force-interpret it as
+// UTC, then read the day and hour in Eastern (America/New_York handles EDT/EST).
+function easternParts(iso) {
+  if (!iso) return null;
+  const hasTz = /([zZ]|[+-]\d{2}:?\d{2})$/.test(iso);
+  const d = new Date(hasTz ? iso : iso + "Z");
+  if (isNaN(d.getTime())) return null;
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", hour12: false,
+  }).formatToParts(d).reduce((o, p) => ((o[p.type] = p.value), o), {});
+  return { dayKey: `${parts.year}-${parts.month}-${parts.day}`, hour: parseInt(parts.hour, 10) % 24 };
+}
+
 export function AdminInsights({ participants, restaurants }) {
   const total = participants.length;
 
-  // --- signups per day (created_at) ---
-  const parsed = participants
-    .map((p) => (p.created_at ? new Date(p.created_at) : null))
+  // --- signups per day (created_at, Eastern) ---
+  const et = participants
+    .map((p) => easternParts(p.created_at))
     .filter(Boolean);
   const dayCounts = {};
-  parsed.forEach((d) => {
-    const k = localDayKey(d);
-    dayCounts[k] = (dayCounts[k] || 0) + 1;
-  });
+  et.forEach((e) => { dayCounts[e.dayKey] = (dayCounts[e.dayKey] || 0) + 1; });
   let days = [];
   const keys = Object.keys(dayCounts).sort();
   if (keys.length) {
@@ -87,7 +99,7 @@ export function AdminInsights({ participants, restaurants }) {
 
   // --- signups by hour of day ---
   const byHour = Array(24).fill(0);
-  parsed.forEach((d) => { byHour[d.getHours()]++; });
+  et.forEach((e) => { byHour[e.hour]++; });
   const maxHour = Math.max(1, ...byHour);
   const peakHour = byHour.indexOf(maxHour);
 
@@ -152,9 +164,9 @@ export function AdminInsights({ participants, restaurants }) {
           <div className="ins-tile-sub">{v4} hit 4+ visits</div>
         </div>
         <div className="ins-tile">
-          <div className="ins-tile-num">{peakHour >= 0 && parsed.length ? hourLabel(peakHour) : "—"}</div>
+          <div className="ins-tile-num">{peakHour >= 0 && et.length ? hourLabel(peakHour) : "—"}</div>
           <div className="ins-tile-label">Busiest sign-up hour</div>
-          <div className="ins-tile-sub">your local time</div>
+          <div className="ins-tile-sub">Eastern (ET)</div>
         </div>
       </div>
 
@@ -180,8 +192,8 @@ export function AdminInsights({ participants, restaurants }) {
 
       <div className="ins-card">
         <div className="ins-card-title">Sign-ups by hour of day</div>
-        <div className="ins-card-note">When people sign up, in your local timezone. (This is the only "hot times" your data can show — visits aren't timestamped.)</div>
-        {parsed.length ? (
+        <div className="ins-card-note">When people sign up, in Eastern Time. (This is the only "hot times" your data can show — visits aren't timestamped.)</div>
+        {et.length ? (
           <>
             <div className="ins-vbars">
               {byHour.map((c, h) => (
