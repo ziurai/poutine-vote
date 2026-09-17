@@ -155,16 +155,11 @@ function EmailGate({ onEnter }) {
     if (!clean || !clean.includes("@")) { setError("Please enter a valid email address."); return; }
     setLoading(true); setError("");
     try {
-      const { data, error: err } = await supabase.from("participants").select("*").eq("email", clean).single();
-      if (err && err.code === "PGRST116") {
-        const { data: newP, error: insertErr } = await supabase.from("participants").insert({ email: clean, visited: [], favorite: null }).select().single();
-        if (insertErr) throw insertErr;
-        fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
-        onEnter(newP);
-      } else if (err) { throw err; } else {
-        fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
-        onEnter(data);
-      }
+      const res = await fetch("/api/vote/enter", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) });
+      if (!res.ok) throw new Error("enter failed");
+      const { participant } = await res.json();
+      fetch("/api/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: clean }) }).catch(() => {});
+      onEnter(participant);
     } catch (e) { setError("Something went wrong. Please try again."); }
     setLoading(false);
   };
@@ -241,8 +236,10 @@ function MainApp({ participant, onUpdate }) {
 
   const saveVisited = async () => {
     setSaving(true);
-    const { data, error } = await supabase.from("participants").update({ visited }).eq("email", participant.email).select().single();
-    if (!error) { onUpdate(data); setSavedMsg("Saved!"); setTimeout(() => setSavedMsg(""), 2500); }
+    try {
+      const res = await fetch("/api/vote/visit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: participant.email, visited }) });
+      if (res.ok) { const { participant: data } = await res.json(); setVisited(data.visited || []); onUpdate(data); setSavedMsg("Saved!"); setTimeout(() => setSavedMsg(""), 2500); }
+    } catch (e) {}
     setSaving(false);
   };
 
@@ -251,8 +248,10 @@ function MainApp({ participant, onUpdate }) {
     const rest = restaurants.find(x => x.id === id);
     if (!window.confirm(`Cast your final vote for "${rest.name}"?\n\nThis cannot be changed after submitting.`)) return;
     setVoteSaving(true);
-    const { data, error } = await supabase.from("participants").update({ favorite: id }).eq("email", participant.email).select().single();
-    if (!error) { setFavorite(id); onUpdate(data); }
+    try {
+      const res = await fetch("/api/vote/cast", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: participant.email, favorite: id }) });
+      if (res.ok) { const { participant: data } = await res.json(); setFavorite(data.favorite || id); onUpdate(data); }
+    } catch (e) {}
     setVoteSaving(false);
   };
 
