@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@supabase/supabase-js";
 
 const supabase = createClient(
@@ -219,12 +219,19 @@ function EmailGate({ onEnter }) {
 
 function MainApp({ participant, onUpdate }) {
   const [restaurants, setRestaurants] = useState([]);
-  const [visited, setVisited] = useState(participant.visited || []);
+  const [visited, setVisitedState] = useState(participant.visited || []);
   const [favorite, setFavorite] = useState(participant.favorite || null);
   const [saving, setSaving] = useState(false);
-  const [savedMsg, setSavedMsg] = useState("");
+  const [saveErr, setSaveErr] = useState("");
   const [voteSaving, setVoteSaving] = useState(false);
   const [mapOpen, setMapOpen] = useState(false);
+
+  // visitedRef always holds the latest array so rapid clicks on different
+  // cards each build on the newest state, not a stale render. saveSeq lets a
+  // newer toggle's response win if requests come back out of order.
+  const visitedRef = useRef(participant.visited || []);
+  const saveSeq = useRef(0);
+  const setVisited = (v) => { visitedRef.current = v; setVisitedState(v); };
 
   useEffect(() => {
     document.title = "Poutine Week — Vote";
@@ -233,18 +240,26 @@ function MainApp({ participant, onUpdate }) {
     });
   }, []);
 
-  const toggleVisited = (id) => {
+  // Each click saves immediately; clicking again unchecks and saves the
+  // removal. Optimistic: the checkbox flips at once, then persists in the
+  // background and reverts if the save fails.
+  const toggleVisited = async (id) => {
     if (favorite === id) return;
-    setVisited(prev => prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id]);
-  };
-
-  const saveVisited = async () => {
-    setSaving(true);
+    const prev = visitedRef.current;
+    const next = prev.includes(id) ? prev.filter(v => v !== id) : [...prev, id];
+    setVisited(next);
+    const seq = ++saveSeq.current;
+    setSaving(true); setSaveErr("");
     try {
-      const res = await fetch("/api/vote/visit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: participant.email, visited }) });
-      if (res.ok) { const { participant: data } = await res.json(); setVisited(data.visited || []); onUpdate(data); setSavedMsg("Saved!"); setTimeout(() => setSavedMsg(""), 2500); }
-    } catch (e) {}
-    setSaving(false);
+      const res = await fetch("/api/vote/visit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: participant.email, visited: next }) });
+      if (!res.ok) throw new Error("save failed");
+      const { participant: data } = await res.json();
+      if (seq === saveSeq.current) { setVisited(data.visited || []); onUpdate(data); }
+    } catch (e) {
+      if (seq === saveSeq.current) { setVisited(prev); setSaveErr("Couldn't save that — check your connection and tap again."); }
+    } finally {
+      if (seq === saveSeq.current) setSaving(false);
+    }
   };
 
   const castVote = async (id) => {
@@ -301,8 +316,9 @@ function MainApp({ participant, onUpdate }) {
         </div>
 
         <div className="save-row">
-          <button className="btn-primary" onClick={saveVisited} disabled={saving}>{saving ? "SAVING..." : "SAVE MY VISITS"}</button>
-          {savedMsg && <span className="save-ok">Saved!</span>}
+          {saveErr
+            ? <span style={{ color: "#ff4444", fontSize: 12 }}>{saveErr}</span>
+            : <span style={{ color: "#666", fontSize: 12 }}>{saving ? "Saving…" : "Your visits save automatically"}</span>}
           <span className="save-count">{visited.length} / {restaurants.length} visited</span>
         </div>
 
