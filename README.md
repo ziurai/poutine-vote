@@ -20,14 +20,15 @@ npm run dev                  # http://localhost:3000
 ### Environment variables
 
 `.env.local` is gitignored and you have to create it. See `.env.example` for
-the full list. If you have Vercel access, this fills it in for you:
+the full list.
 
-```bash
-vercel link --yes --project poutine-vote
-vercel env pull .env.local
-```
+**`vercel env pull` does not work for this project.** The `development`
+environment has no variables at all, and pulling `production` returns every
+encrypted value as an empty string. Worse, it writes `.env.production.local`,
+which then overrides your real `.env.local` during `npm run build`. Copy the
+values out of the Vercel dashboard by hand, or ask Alex for them.
 
-Otherwise ask Alex for the two `NEXT_PUBLIC_SUPABASE_*` values. Those are the
+Ask Alex for the two `NEXT_PUBLIC_SUPABASE_*` values. Those are the
 only ones needed to run the site. The three `MAILCHIMP_*` vars only affect
 `/api/subscribe`; without them that one route returns 500 and nothing else
 notices.
