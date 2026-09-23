@@ -70,13 +70,14 @@ export async function POST(request) {
     if (uErr) throw uErr;
 
     if (updated && updated.length === 1) {
-      // Best-effort: record the IP that cast this vote. Kept separate from the
-      // vote write above so a missing column or header never fails the vote.
+      // Best-effort: stamp when and from where the vote was cast. Kept separate
+      // from the vote write above so a missing column or header never fails or
+      // blocks the actual vote.
+      const patch = { voted_at: new Date().toISOString() };
       const ip = clientIp(request);
-      if (ip) {
-        const { error: ipErr } = await db.from("participants").update({ vote_ip: ip }).eq("email", email);
-        if (ipErr) console.error("vote_ip capture skipped:", ipErr.message);
-      }
+      if (ip) patch.vote_ip = ip;
+      const { error: metaErr } = await db.from("participants").update(patch).eq("email", email);
+      if (metaErr) console.error("vote metadata capture skipped:", metaErr.message);
       return Response.json({ participant: updated[0] });
     }
     // Lost a race (voted in a concurrent request): return the stored row.
