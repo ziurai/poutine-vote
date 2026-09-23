@@ -173,14 +173,25 @@ function buildClusters(participants) {
         const t1 = new Date(times[times.length - 1] + (/[zZ]|[+-]\d\d:?\d\d$/.test(times[times.length - 1]) ? "" : "Z"));
         spanMin = Math.round((t1 - t0) / 60000);
       }
+      const votedCount = votes.length;
+      const nonVotedCount = g.length - votedCount;
+      // Two things we actually care about:
+      //  - stuffing: 2+ of the linked accounts voted the same venue
+      //  - held-back: some voted and some didn't (spreading across accounts)
+      const sameVenue = targets.length === 1 && votedCount >= 2;
+      const mixed = votedCount >= 1 && nonVotedCount >= 1;
       return {
         members, size: g.length, domains, ips,
-        voteCount: votes.length,
-        convergesOn: targets.length === 1 && votes.length >= 2 ? targets[0] : null,
+        votedCount, nonVotedCount, sameVenue, mixed,
+        convergesOn: sameVenue ? targets[0] : null,
         spanMin,
       };
     })
-    .sort((a, b) => (b.convergesOn ? 1 : 0) - (a.convergesOn ? 1 : 0) || b.size - a.size);
+    // Only surface clusters that threaten the result: same-venue stuffing, or a
+    // mix of voted/not-voted. A cluster where nobody voted, or where everyone
+    // voted different venues, isn't flagged.
+    .filter((c) => c.sameVenue || c.mixed)
+    .sort((a, b) => (b.sameVenue ? 1 : 0) - (a.sameVenue ? 1 : 0) || b.size - a.size);
 }
 
 function spanText(min) {
@@ -393,16 +404,19 @@ export function AdminInsights({ participants, restaurants, onDelete }) {
       <div className="ins-flag-card">
         <div className="ins-flag-title">⚑ Review — likely duplicate accounts ({clusters.length})</div>
         <div className="ins-card-note">
-          Accounts grouped when they share a name stem, a near-identical name (typo), one name inside another, or an IP.
-          Signals to review, not proof — shared WiFi (a venue, a household) can put unrelated people on one IP.
-          Groups that pile onto a single restaurant are listed first.
+          Linked accounts (shared name stem, a typo apart, one name inside another, or a shared IP) that also either
+          voted the same venue, or have some voted and some not. Groups where nobody voted, or everyone picked a
+          different venue, aren't shown. Signals to review, not proof — shared WiFi (a venue, a household) can put
+          unrelated people on one IP.
         </div>
 
         {clusters.length ? clusters.slice(0, 40).map((c, i) => (
           <div className="ins-group" key={i}>
             <div className="ins-group-head">
               {c.size} accounts
-              {c.convergesOn && <span className="ins-conv"> · all voted {restName(c.convergesOn)}</span>}
+              {c.sameVenue && <span className="ins-conv"> · {c.votedCount} voted {restName(c.convergesOn)}</span>}
+              {!c.sameVenue && c.mixed && <span className="ins-conv"> · {c.votedCount} voted, {c.nonVotedCount} didn’t</span>}
+              {c.sameVenue && c.nonVotedCount > 0 && <span> · {c.nonVotedCount} didn’t vote</span>}
               {c.domains.length > 1 && <span> · {c.domains.length} domains</span>}
               {c.ips.length > 0 && <span> · {c.ips.length === 1 ? "same IP" : `${c.ips.length} IPs`}</span>}
               {c.spanMin != null && <span> · {spanText(c.spanMin)}</span>}
