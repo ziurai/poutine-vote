@@ -238,6 +238,15 @@ export default function AdminPage() {
 
   const isOwner = (session?.user?.email || "").trim().toLowerCase() === OWNER_EMAIL;
 
+  // Delete one participant. Runs as the logged-in admin, so RLS ("authenticated
+  // full access") permits it while the public anon key still cannot. Confirmation
+  // happens in the dashboard before this is called.
+  const deleteParticipant = async (email) => {
+    const { error } = await supabase.from("participants").delete().eq("email", email);
+    if (error) { alert("Couldn't delete: " + error.message); return; }
+    await loadData();
+  };
+
   const resetAllVotes = async () => {
     if (!isOwner) return;
     const typed = window.prompt(
@@ -330,7 +339,7 @@ export default function AdminPage() {
           </>
         )}
 
-        {tab === "insights" && <AdminInsights participants={participants} restaurants={restaurants} />}
+        {tab === "insights" && <AdminInsights participants={participants} restaurants={restaurants} onDelete={deleteParticipant} />}
       </div>
     </div>
   );

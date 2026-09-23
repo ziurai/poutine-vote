@@ -4,6 +4,12 @@ import { isValidFormat, isDisposableDomain, domainHasMail } from "../_lib/valida
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function clientIp(request) {
+  const xff = request.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim() || null;
+  return request.headers.get("x-real-ip") || null;
+}
+
 // Look up a participant by email, creating the row if it does not exist yet.
 // Replaces the anonymous select-or-insert that used to run in the browser.
 export async function POST(request) {
@@ -29,13 +35,23 @@ export async function POST(request) {
       return Response.json({ error: "That email address doesn't look right - please double-check it." }, { status: 400 });
     }
 
+    const ip = clientIp(request);
+
     const { data: existing, error: selErr } = await db
       .from("participants")
       .select("email, visited, favorite")
       .eq("email", email)
       .maybeSingle();
     if (selErr) throw selErr;
-    if (existing) return Response.json({ participant: existing });
+    if (existing) {
+      // Best-effort: record the first sign-up IP only (don't overwrite it on
+      // return visits). Never fails the request if the column is absent.
+      if (ip) {
+        const { error: ipErr } = await db.from("participants").update({ signup_ip: ip }).eq("email", email).is("signup_ip", null);
+        if (ipErr) console.error("signup_ip capture skipped:", ipErr.message);
+      }
+      return Response.json({ participant: existing });
+    }
 
     const { data: created, error: insErr } = await db
       .from("participants")
@@ -54,6 +70,11 @@ export async function POST(request) {
         if (again) return Response.json({ participant: again });
       }
       throw insErr;
+    }
+
+    if (ip) {
+      const { error: ipErr } = await db.from("participants").update({ signup_ip: ip }).eq("email", email);
+      if (ipErr) console.error("signup_ip capture skipped:", ipErr.message);
     }
 
     return Response.json({ participant: created });

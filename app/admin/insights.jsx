@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 
 // Marketing dashboard for the admin area. Everything here is derived from data
 // the app already stores: participants (email, visited[], favorite, created_at)
@@ -57,6 +58,10 @@ const css = `
   .ins-gr-email { color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .ins-gr-meta { color: #888; flex-shrink: 0; text-align: right; }
   .ins-gr-meta b { color: ${YELLOW}; font-weight: 600; }
+  .ins-conv { color: #ff8a3d; font-weight: 700; }
+  .ins-del { flex-shrink: 0; background: transparent; border: 1px solid #5a2626; color: #ff6b6b; border-radius: 3px; font-size: 11px; padding: 2px 8px; cursor: pointer; transition: all 0.15s; }
+  .ins-del:hover { background: #ff4444; border-color: #ff4444; color: #fff; }
+  .ins-del:disabled { opacity: 0.5; cursor: default; }
   .ins-ok { font-size: 13px; color: #7ab320; padding: 12px 0; }
 `;
 
@@ -88,8 +93,115 @@ function easternParts(iso) {
   return { dayKey: `${parts.year}-${parts.month}-${parts.day}`, hour: parseInt(parts.hour, 10) % 24 };
 }
 
-export function AdminInsights({ participants, restaurants }) {
+// Canonical stem of an email's local part: lowercase, drop separators and any
+// trailing digits, so "isaiah.riordan21" and "isaiahriordan19" both become
+// "isaiahriordan".
+function emailStem(email) {
+  const at = (email || "").lastIndexOf("@");
+  if (at < 1) return "";
+  return email.slice(0, at).toLowerCase().replace(/[._+\-]/g, "").replace(/\d+$/, "");
+}
+
+// Bounded Levenshtein: returns max+1 as soon as it's exceeded.
+function editDistance(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    let best = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + cost);
+      if (cur[j] < best) best = cur[j];
+    }
+    if (best > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+// Group participants that are probably the same person, by any of: identical
+// name stem, one stem containing another, a small typo distance between stems,
+// or a shared IP (sign-up or vote). Union-find over the participant list.
+function buildClusters(participants) {
+  const people = participants.map((p) => {
+    const at = (p.email || "").lastIndexOf("@");
+    return {
+      email: p.email || "",
+      domain: at > 0 ? p.email.slice(at + 1).toLowerCase() : "",
+      stem: emailStem(p.email),
+      created_at: p.created_at,
+      voted_at: p.voted_at,
+      favorite: p.favorite || null,
+      ips: [p.signup_ip, p.vote_ip].filter(Boolean),
+    };
+  });
+  const N = people.length;
+  const parent = people.map((_, i) => i);
+  const find = (x) => { while (parent[x] !== x) { parent[x] = parent[parent[x]]; x = parent[x]; } return x; };
+  const union = (a, b) => { const ra = find(a), rb = find(b); if (ra !== rb) parent[ra] = rb; };
+
+  const doFuzzy = N <= 1500; // O(n^2) guard for very large lists
+  for (let a = 0; a < N; a++) {
+    for (let b = a + 1; b < N; b++) {
+      const A = people[a], B = people[b];
+      let link = false;
+      if (A.ips.length && B.ips.length && A.ips.some((ip) => B.ips.includes(ip))) link = true;
+      else if (A.stem && B.stem) {
+        if (A.stem === B.stem) link = true;
+        else if (A.stem.length >= 4 && B.stem.length >= 4 && (A.stem.includes(B.stem) || B.stem.includes(A.stem))) link = true;
+        else if (doFuzzy && Math.min(A.stem.length, B.stem.length) >= 4 && editDistance(A.stem, B.stem, 2) <= 2) link = true;
+      }
+      if (link) union(a, b);
+    }
+  }
+
+  const groups = {};
+  people.forEach((p, i) => { const r = find(i); (groups[r] ||= []).push(p); });
+  return Object.values(groups)
+    .filter((g) => g.length >= 2)
+    .map((g) => {
+      const members = g.slice().sort((a, b) => (a.created_at || "").localeCompare(b.created_at || ""));
+      const domains = [...new Set(g.map((m) => m.domain).filter(Boolean))];
+      const ips = [...new Set(g.flatMap((m) => m.ips))];
+      const votes = g.filter((m) => m.favorite);
+      const targets = [...new Set(votes.map((m) => m.favorite))];
+      const times = g.map((m) => m.created_at).filter(Boolean).sort();
+      let spanMin = null;
+      if (times.length >= 2) {
+        const t0 = new Date(times[0] + (/[zZ]|[+-]\d\d:?\d\d$/.test(times[0]) ? "" : "Z"));
+        const t1 = new Date(times[times.length - 1] + (/[zZ]|[+-]\d\d:?\d\d$/.test(times[times.length - 1]) ? "" : "Z"));
+        spanMin = Math.round((t1 - t0) / 60000);
+      }
+      return {
+        members, size: g.length, domains, ips,
+        voteCount: votes.length,
+        convergesOn: targets.length === 1 && votes.length >= 2 ? targets[0] : null,
+        spanMin,
+      };
+    })
+    .sort((a, b) => (b.convergesOn ? 1 : 0) - (a.convergesOn ? 1 : 0) || b.size - a.size);
+}
+
+function spanText(min) {
+  if (min == null) return "";
+  if (min < 1) return "under a minute apart";
+  if (min < 60) return `within ${min} min`;
+  if (min < 60 * 36) return `within ${Math.round(min / 60)} h`;
+  return `within ${Math.round(min / 1440)} days`;
+}
+
+export function AdminInsights({ participants, restaurants, onDelete }) {
   const total = participants.length;
+  const [busy, setBusy] = useState(null);
+
+  const confirmDelete = async (m) => {
+    if (!onDelete) return;
+    const voteLine = m.favorite ? `\n\nThis also removes their vote for ${(restaurants.find((r) => r.id === m.favorite) || {}).name || "a restaurant"}.` : "";
+    if (!window.confirm(`Permanently delete ${m.email}?${voteLine}\n\nThis cannot be undone.`)) return;
+    setBusy(m.email);
+    try { await onDelete(m.email); } finally { setBusy(null); }
+  };
 
   // --- signups per day (created_at, Eastern) ---
   const et = participants
@@ -155,7 +267,7 @@ export function AdminInsights({ participants, restaurants }) {
   const avgVisits = total ? (totalVisits / total).toFixed(1) : "0";
   const pct = (n) => (total ? Math.round((n / total) * 100) : 0);
 
-  // --- fraud signals ---
+  // --- fraud signals: cluster likely-same-person accounts ---
   const fmtWhen = (iso) => {
     const e = easternParts(iso);
     if (!e) return "";
@@ -164,33 +276,7 @@ export function AdminInsights({ participants, restaurants }) {
     return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })} ${h12}${e.hour < 12 ? "am" : "pm"}`;
   };
   const restName = (id) => (restaurants.find((r) => r.id === id) || {}).name || "—";
-
-  // Same local part (before @), 2+ different domains -> likely one person with
-  // several addresses. Gmail dot/plus aliases are already merged at sign-up, so
-  // this catches the cross-provider case (alex@gmail / alex@yahoo).
-  const byLocal = {};
-  participants.forEach((p) => {
-    const at = (p.email || "").lastIndexOf("@");
-    if (at < 1) return;
-    const local = p.email.slice(0, at).toLowerCase();
-    const domain = p.email.slice(at + 1).toLowerCase();
-    (byLocal[local] ||= []).push({ email: p.email, domain, created_at: p.created_at, favorite: p.favorite });
-  });
-  const lookalikes = Object.entries(byLocal)
-    .filter(([, rows]) => new Set(rows.map((r) => r.domain)).size > 1)
-    .map(([local, rows]) => ({ local, rows: rows.slice().sort((a, b) => (a.created_at || "").localeCompare(b.created_at || "")) }))
-    .sort((a, b) => b.rows.length - a.rows.length);
-
-  // Multiple cast votes from one IP (populated going forward from vote_ip).
-  const byIp = {};
-  participants.forEach((p) => {
-    if (p.favorite && p.vote_ip) (byIp[p.vote_ip] ||= []).push(p);
-  });
-  const dupIps = Object.entries(byIp)
-    .filter(([, rows]) => rows.length > 1)
-    .map(([ip, rows]) => ({ ip, rows: rows.slice().sort((a, b) => (a.voted_at || "").localeCompare(b.voted_at || "")) }))
-    .sort((a, b) => b.rows.length - a.rows.length);
-  const anyVoteIp = participants.some((p) => p.vote_ip);
+  const clusters = buildClusters(participants);
 
   return (
     <div className="ins">
@@ -305,40 +391,39 @@ export function AdminInsights({ participants, restaurants }) {
       </div>
 
       <div className="ins-flag-card">
-        <div className="ins-flag-title">⚑ Review — possible duplicates</div>
-        <div className="ins-card-note">Signals to eyeball, not proof. Shared WiFi (a restaurant, a household) can make unrelated people share an IP.</div>
-
-        <div style={{ fontSize: 13, color: "#ccc", fontWeight: 700, margin: "10px 0 8px" }}>
-          Look-alike emails · same name, different domain
+        <div className="ins-flag-title">⚑ Review — likely duplicate accounts ({clusters.length})</div>
+        <div className="ins-card-note">
+          Accounts grouped when they share a name stem, a near-identical name (typo), one name inside another, or an IP.
+          Signals to review, not proof — shared WiFi (a venue, a household) can put unrelated people on one IP.
+          Groups that pile onto a single restaurant are listed first.
         </div>
-        {lookalikes.length ? lookalikes.map((g) => (
-          <div className="ins-group" key={g.local}>
-            <div className="ins-group-head">{g.local}@ — {g.rows.length} accounts</div>
-            {g.rows.map((r) => (
-              <div className="ins-group-row" key={r.email}>
-                <span className="ins-gr-email">{r.email}</span>
-                <span className="ins-gr-meta">{fmtWhen(r.created_at)} · {r.favorite ? <b>voted {restName(r.favorite)}</b> : "no vote"}</span>
+
+        {clusters.length ? clusters.slice(0, 40).map((c, i) => (
+          <div className="ins-group" key={i}>
+            <div className="ins-group-head">
+              {c.size} accounts
+              {c.convergesOn && <span className="ins-conv"> · all voted {restName(c.convergesOn)}</span>}
+              {c.domains.length > 1 && <span> · {c.domains.length} domains</span>}
+              {c.ips.length > 0 && <span> · {c.ips.length === 1 ? "same IP" : `${c.ips.length} IPs`}</span>}
+              {c.spanMin != null && <span> · {spanText(c.spanMin)}</span>}
+            </div>
+            {c.members.map((m) => (
+              <div className="ins-group-row" key={m.email}>
+                <span className="ins-gr-email">{m.email}</span>
+                <span className="ins-gr-meta">
+                  {fmtWhen(m.created_at)}
+                  {m.favorite ? <> · <b>{restName(m.favorite)}</b></> : " · no vote"}
+                </span>
+                {onDelete && (
+                  <button className="ins-del" disabled={busy === m.email} onClick={() => confirmDelete(m)}>
+                    {busy === m.email ? "…" : "Delete"}
+                  </button>
+                )}
               </div>
             ))}
           </div>
-        )) : <div className="ins-ok">✓ No look-alike email groups.</div>}
-
-        <div style={{ fontSize: 13, color: "#ccc", fontWeight: 700, margin: "18px 0 8px" }}>
-          Multiple votes from one IP
-        </div>
-        {!anyVoteIp
-          ? <div className="ins-empty" style={{ textAlign: "left" }}>No vote IPs recorded yet — this fills in as new votes come in.</div>
-          : dupIps.length ? dupIps.map((g) => (
-            <div className="ins-group" key={g.ip}>
-              <div className="ins-group-head">{g.ip} — {g.rows.length} votes</div>
-              {g.rows.map((r) => (
-                <div className="ins-group-row" key={r.email}>
-                  <span className="ins-gr-email">{r.email}</span>
-                  <span className="ins-gr-meta">{fmtWhen(r.voted_at)} · <b>{restName(r.favorite)}</b></span>
-                </div>
-              ))}
-            </div>
-          )) : <div className="ins-ok">✓ No IP cast more than one vote.</div>}
+        )) : <div className="ins-ok">✓ No duplicate-account clusters detected.</div>}
+        {clusters.length > 40 && <div className="ins-card-note">Showing the top 40 of {clusters.length} groups.</div>}
       </div>
     </div>
   );
