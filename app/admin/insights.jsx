@@ -46,6 +46,18 @@ const css = `
   .ins-funnel-fill { height: 100%; background: ${YELLOW}; border-radius: 3px; min-width: 2px; }
 
   .ins-empty { font-size: 13px; color: #666; padding: 20px 0; text-align: center; }
+
+  /* fraud signals */
+  .ins-flag-card { background: #1a1a1a; border: 2px solid #3a2a12; border-radius: 4px; padding: 18px; }
+  .ins-flag-title { font-family: 'GravySans', sans-serif; font-size: 16px; color: #ffb020; letter-spacing: 0.04em; }
+  .ins-group { border: 1px solid #2a2a2a; border-radius: 3px; padding: 10px 12px; margin-bottom: 8px; background: #151515; }
+  .ins-group-head { font-size: 12px; color: #ffb020; font-weight: 700; margin-bottom: 6px; }
+  .ins-group-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; padding: 3px 0; border-top: 1px solid #202020; }
+  .ins-group-row:first-of-type { border-top: none; }
+  .ins-gr-email { color: #ddd; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ins-gr-meta { color: #888; flex-shrink: 0; text-align: right; }
+  .ins-gr-meta b { color: ${YELLOW}; font-weight: 600; }
+  .ins-ok { font-size: 13px; color: #7ab320; padding: 12px 0; }
 `;
 
 function localDayKey(d) {
@@ -142,6 +154,43 @@ export function AdminInsights({ participants, restaurants }) {
   const totalVisits = participants.reduce((s, p) => s + (p.visited || []).length, 0);
   const avgVisits = total ? (totalVisits / total).toFixed(1) : "0";
   const pct = (n) => (total ? Math.round((n / total) * 100) : 0);
+
+  // --- fraud signals ---
+  const fmtWhen = (iso) => {
+    const e = easternParts(iso);
+    if (!e) return "";
+    const d = new Date(e.dayKey + "T00:00:00");
+    const h12 = e.hour % 12 === 0 ? 12 : e.hour % 12;
+    return `${d.toLocaleDateString(undefined, { month: "short", day: "numeric" })} ${h12}${e.hour < 12 ? "am" : "pm"}`;
+  };
+  const restName = (id) => (restaurants.find((r) => r.id === id) || {}).name || "—";
+
+  // Same local part (before @), 2+ different domains -> likely one person with
+  // several addresses. Gmail dot/plus aliases are already merged at sign-up, so
+  // this catches the cross-provider case (alex@gmail / alex@yahoo).
+  const byLocal = {};
+  participants.forEach((p) => {
+    const at = (p.email || "").lastIndexOf("@");
+    if (at < 1) return;
+    const local = p.email.slice(0, at).toLowerCase();
+    const domain = p.email.slice(at + 1).toLowerCase();
+    (byLocal[local] ||= []).push({ email: p.email, domain, created_at: p.created_at, favorite: p.favorite });
+  });
+  const lookalikes = Object.entries(byLocal)
+    .filter(([, rows]) => new Set(rows.map((r) => r.domain)).size > 1)
+    .map(([local, rows]) => ({ local, rows: rows.slice().sort((a, b) => (a.created_at || "").localeCompare(b.created_at || "")) }))
+    .sort((a, b) => b.rows.length - a.rows.length);
+
+  // Multiple cast votes from one IP (populated going forward from vote_ip).
+  const byIp = {};
+  participants.forEach((p) => {
+    if (p.favorite && p.vote_ip) (byIp[p.vote_ip] ||= []).push(p);
+  });
+  const dupIps = Object.entries(byIp)
+    .filter(([, rows]) => rows.length > 1)
+    .map(([ip, rows]) => ({ ip, rows: rows.slice().sort((a, b) => (a.voted_at || "").localeCompare(b.voted_at || "")) }))
+    .sort((a, b) => b.rows.length - a.rows.length);
+  const anyVoteIp = participants.some((p) => p.vote_ip);
 
   return (
     <div className="ins">
@@ -253,6 +302,43 @@ export function AdminInsights({ participants, restaurants }) {
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="ins-flag-card">
+        <div className="ins-flag-title">⚑ Review — possible duplicates</div>
+        <div className="ins-card-note">Signals to eyeball, not proof. Shared WiFi (a restaurant, a household) can make unrelated people share an IP.</div>
+
+        <div style={{ fontSize: 13, color: "#ccc", fontWeight: 700, margin: "10px 0 8px" }}>
+          Look-alike emails · same name, different domain
+        </div>
+        {lookalikes.length ? lookalikes.map((g) => (
+          <div className="ins-group" key={g.local}>
+            <div className="ins-group-head">{g.local}@ — {g.rows.length} accounts</div>
+            {g.rows.map((r) => (
+              <div className="ins-group-row" key={r.email}>
+                <span className="ins-gr-email">{r.email}</span>
+                <span className="ins-gr-meta">{fmtWhen(r.created_at)} · {r.favorite ? <b>voted {restName(r.favorite)}</b> : "no vote"}</span>
+              </div>
+            ))}
+          </div>
+        )) : <div className="ins-ok">✓ No look-alike email groups.</div>}
+
+        <div style={{ fontSize: 13, color: "#ccc", fontWeight: 700, margin: "18px 0 8px" }}>
+          Multiple votes from one IP
+        </div>
+        {!anyVoteIp
+          ? <div className="ins-empty" style={{ textAlign: "left" }}>No vote IPs recorded yet — this fills in as new votes come in.</div>
+          : dupIps.length ? dupIps.map((g) => (
+            <div className="ins-group" key={g.ip}>
+              <div className="ins-group-head">{g.ip} — {g.rows.length} votes</div>
+              {g.rows.map((r) => (
+                <div className="ins-group-row" key={r.email}>
+                  <span className="ins-gr-email">{r.email}</span>
+                  <span className="ins-gr-meta">{fmtWhen(r.voted_at)} · <b>{restName(r.favorite)}</b></span>
+                </div>
+              ))}
+            </div>
+          )) : <div className="ins-ok">✓ No IP cast more than one vote.</div>}
       </div>
     </div>
   );
