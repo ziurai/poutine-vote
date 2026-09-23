@@ -3,6 +3,14 @@ import { getServiceClient, normalizeEmail } from "../_lib/service";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+// Best guess at the real client IP behind Vercel's proxy. x-forwarded-for is a
+// comma-separated chain; the first entry is the original client.
+function clientIp(request) {
+  const xff = request.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim() || null;
+  return request.headers.get("x-real-ip") || null;
+}
+
 // Record a participant's final vote. Replaces the anonymous update that used to
 // run in the browser. The vote is only written when none is set yet, so a cast
 // vote can never be changed or overwritten - the UI enforced this client-side;
@@ -62,6 +70,13 @@ export async function POST(request) {
     if (uErr) throw uErr;
 
     if (updated && updated.length === 1) {
+      // Best-effort: record the IP that cast this vote. Kept separate from the
+      // vote write above so a missing column or header never fails the vote.
+      const ip = clientIp(request);
+      if (ip) {
+        const { error: ipErr } = await db.from("participants").update({ vote_ip: ip }).eq("email", email);
+        if (ipErr) console.error("vote_ip capture skipped:", ipErr.message);
+      }
       return Response.json({ participant: updated[0] });
     }
     // Lost a race (voted in a concurrent request): return the stored row.
