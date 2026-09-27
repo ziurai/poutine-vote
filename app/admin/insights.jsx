@@ -139,6 +139,7 @@ function buildClusters(participants) {
       favorite: p.favorite || null,
       isp: p.isp || null,
       hosting: !!p.isp_hosting,
+      location: p.location || null,
       ips: [p.signup_ip, p.vote_ip].filter(Boolean),
     };
   });
@@ -310,10 +311,10 @@ export function AdminInsights({ participants, restaurants, onDelete, onLookupIsp
   const clusters = buildClusters(participants);
 
   const anyIsp = participants.some((p) => p.isp);
-  const ipsPending = new Set(participants.filter((p) => p.vote_ip && !p.isp).map((p) => p.vote_ip)).size;
+  const ipsPending = new Set(participants.filter((p) => p.vote_ip && !p.location).map((p) => p.vote_ip)).size;
   const hostingVotes = participants
     .filter((p) => p.isp_hosting && p.favorite)
-    .map((p) => ({ email: p.email, isp: p.isp, favorite: p.favorite, voted_at: p.voted_at, created_at: p.created_at }))
+    .map((p) => ({ email: p.email, isp: p.isp, location: p.location, favorite: p.favorite, voted_at: p.voted_at, created_at: p.created_at }))
     .sort((a, b) => (a.voted_at || "").localeCompare(b.voted_at || ""));
 
   return (
@@ -449,7 +450,8 @@ export function AdminInsights({ participants, restaurants, onDelete, onLookupIsp
                 <div className="ins-group-row" key={m.email}>
                   <span className="ins-gr-email">{m.email}</span>
                   <span className="ins-gr-meta">
-                    <span className="ins-host">⚠ {m.isp}</span> · <b>{restName(m.favorite)}</b>
+                    <span className="ins-host">⚠ {m.isp}</span>
+                    {m.location ? ` · ${m.location}` : ""} · <b>{restName(m.favorite)}</b>
                     {m.voted_at ? ` · ${fmtWhen(m.voted_at)}` : ""}
                   </span>
                   {onDelete && (
@@ -491,6 +493,7 @@ export function AdminInsights({ participants, restaurants, onDelete, onLookupIsp
                   {fmtWhen(m.created_at)}
                   {m.favorite ? <> · <b>{restName(m.favorite)}</b></> : " · no vote"}
                   {m.isp ? <> · {m.hosting ? <span className="ins-host">⚠ {m.isp}</span> : m.isp}</> : null}
+                  {m.location ? ` · ${m.location}` : ""}
                 </span>
                 {onDelete && (
                   <button className="ins-del" disabled={busy === m.email} onClick={() => confirmDelete(m)}>

@@ -32,12 +32,14 @@ export async function POST(request) {
     const db = getServiceClient();
     if (!db) return Response.json({ error: "Server not configured" }, { status: 500 });
 
-    // Distinct vote IPs that don't have an ISP resolved yet.
+    // Distinct vote IPs not fully resolved yet. Gated on `location` (the last
+    // field added) so a re-run also backfills location onto rows that already
+    // have an isp from an earlier version.
     const { data: rows, error } = await db
       .from("participants")
       .select("vote_ip")
       .not("vote_ip", "is", null)
-      .is("isp", null)
+      .is("location", null)
       .limit(20000);
     if (error) return Response.json({ error: error.message }, { status: 500 });
 
@@ -51,7 +53,7 @@ export async function POST(request) {
     const map = {};
     for (let i = 0; i < ips.length; i += 100) {
       const chunk = ips.slice(i, i + 100);
-      const res = await fetch("http://ip-api.com/batch?fields=query,status,isp,org,as,hosting", {
+      const res = await fetch("http://ip-api.com/batch?fields=query,status,isp,org,as,hosting,city,region,country", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(chunk),
@@ -59,8 +61,12 @@ export async function POST(request) {
       if (!res.ok) return Response.json({ error: `ISP lookup failed (HTTP ${res.status})` }, { status: 502 });
       for (const r of await res.json()) {
         map[r.query] = r.status === "success"
-          ? { isp: r.isp || r.org || r.as || "Unknown", hosting: !!r.hosting }
-          : { isp: "Unknown", hosting: false };
+          ? {
+              isp: r.isp || r.org || r.as || "Unknown",
+              hosting: !!r.hosting,
+              location: [r.city, r.region].filter(Boolean).join(", ") || r.country || "Unknown",
+            }
+          : { isp: "Unknown", hosting: false, location: "Unknown" };
       }
       if (i + 100 < ips.length) await new Promise((r) => setTimeout(r, 1300)); // stay under the rate limit
     }
@@ -69,13 +75,13 @@ export async function POST(request) {
     // .is("isp", null) so re-runs only fill blanks (safe to repeat).
     let updated = 0, hosting = 0;
     for (const ip of ips) {
-      const info = map[ip] || { isp: "Unknown", hosting: false };
+      const info = map[ip] || { isp: "Unknown", hosting: false, location: "Unknown" };
       if (info.hosting) hosting++;
       const { error: uErr, count } = await db
         .from("participants")
-        .update({ isp: info.isp, isp_hosting: info.hosting }, { count: "exact" })
+        .update({ isp: info.isp, isp_hosting: info.hosting, location: info.location }, { count: "exact" })
         .eq("vote_ip", ip)
-        .is("isp", null);
+        .is("location", null);
       if (!uErr) updated += count || 0;
     }
 
