@@ -67,6 +67,8 @@ const css = `
   .ins-btn:disabled { background: #444; color: #777; cursor: default; }
   .ins-btn-note { font-size: 12px; color: #888; margin-top: 8px; }
   .ins-host { color: #ff8a3d; font-weight: 700; }
+  .ins-textarea { width: 100%; min-height: 90px; background: #111; border: 1px solid #333; border-radius: 3px; color: #ddd; font-size: 12px; font-family: ui-monospace, monospace; padding: 10px; resize: vertical; outline: none; }
+  .ins-textarea:focus { border-color: ${YELLOW}; }
 `;
 
 function localDayKey(d) {
@@ -310,6 +312,27 @@ export function AdminInsights({ participants, restaurants, onDelete, onLookupIsp
   const restName = (id) => (restaurants.find((r) => r.id === id) || {}).name || "—";
   const clusters = buildClusters(participants);
 
+  const [bounceText, setBounceText] = useState("");
+  const normForMatch = (e) => {
+    const s = (e || "").trim().toLowerCase();
+    const at = s.lastIndexOf("@");
+    if (at < 1) return s;
+    let local = s.slice(0, at), domain = s.slice(at + 1);
+    if (domain === "googlemail.com") domain = "gmail.com";
+    if (domain === "gmail.com") local = local.split("+")[0].replace(/\./g, "");
+    return local + "@" + domain;
+  };
+  const pByEmail = {};
+  participants.forEach((p) => { pByEmail[normForMatch(p.email)] = p; });
+  const clusteredEmails = new Set(clusters.flatMap((c) => c.members.map((m) => m.email)));
+  const bounceEmails = [...new Set((bounceText.match(/[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}/gi) || []).map(normForMatch))];
+  const bounceMatches = bounceEmails
+    .map((e) => pByEmail[e])
+    .filter(Boolean)
+    .map((p) => ({ email: p.email, favorite: p.favorite, created_at: p.created_at, isp: p.isp, hosting: p.isp_hosting, location: p.location, inCluster: clusteredEmails.has(p.email) }))
+    .sort((a, b) => (b.inCluster ? 1 : 0) - (a.inCluster ? 1 : 0) || (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
+  const bounceVoted = bounceMatches.filter((m) => m.favorite).length;
+
   const anyIsp = participants.some((p) => p.isp);
   const ipsPending = new Set(participants.filter((p) => p.vote_ip && !p.location).map((p) => p.vote_ip)).size;
   const hostingVotes = participants
@@ -427,6 +450,42 @@ export function AdminInsights({ participants, restaurants, onDelete, onLookupIsp
             </div>
           </div>
         ))}
+      </div>
+
+      <div className="ins-flag-card">
+        <div className="ins-flag-title">Bounced-email review</div>
+        <div className="ins-card-note">
+          Paste bounced addresses from Mailchimp (whole CSVs are fine — emails are picked out automatically). They're
+          matched to voters here. A hard bounce usually means a fake address, but occasionally a real person's typo —
+          so review each, especially ones without the ⚑ (not in a fraud cluster), before deleting. Gmail dot/plus
+          variants are matched automatically.
+        </div>
+        <textarea
+          className="ins-textarea"
+          value={bounceText}
+          onChange={(e) => setBounceText(e.target.value)}
+          placeholder="Paste bounced emails or CSV contents here…"
+        />
+        {bounceText.trim() && (
+          <>
+            <div className="ins-btn-note">{bounceMatches.length} matched to voters · {bounceVoted} of them voted</div>
+            {bounceMatches.map((m) => (
+              <div className="ins-group-row" key={m.email}>
+                <span className="ins-gr-email">{m.inCluster ? "⚑ " : ""}{m.email}</span>
+                <span className="ins-gr-meta">
+                  {m.favorite ? <b>{restName(m.favorite)}</b> : "no vote"}
+                  {m.isp ? <> · {m.hosting ? <span className="ins-host">⚠ {m.isp}</span> : m.isp}</> : ""}
+                  {m.location ? ` · ${m.location}` : ""}
+                </span>
+                {onDelete && (
+                  <button className="ins-del" disabled={busy === m.email} onClick={() => confirmDelete(m)}>
+                    {busy === m.email ? "…" : "Delete"}
+                  </button>
+                )}
+              </div>
+            ))}
+          </>
+        )}
       </div>
 
       {onLookupIsps && (
