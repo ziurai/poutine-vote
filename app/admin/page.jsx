@@ -225,13 +225,33 @@ export default function AdminPage() {
 
   useEffect(() => { if (session) loadData(); }, [session]);
 
+  // Supabase caps a single select at 1000 rows, so page through all participants
+  // — otherwise counts, clusters and stats silently drop everyone past #1000.
+  const fetchAllParticipants = async () => {
+    const pageSize = 1000;
+    let from = 0;
+    const all = [];
+    for (;;) {
+      const { data, error } = await supabase
+        .from("participants")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, from + pageSize - 1);
+      if (error) { console.error("loadData participants:", error.message); break; }
+      all.push(...(data || []));
+      if (!data || data.length < pageSize) break;
+      from += pageSize;
+    }
+    return all;
+  };
+
   const loadData = async () => {
     setDataLoading(true);
-    const [{ data: p }, { data: r }] = await Promise.all([
-      supabase.from("participants").select("*").order("created_at", { ascending: false }),
+    const [p, { data: r }] = await Promise.all([
+      fetchAllParticipants(),
       supabase.from("restaurants").select("*").order("sort_order"),
     ]);
-    if (p) setParticipants(p);
+    setParticipants(p);
     if (r) setRestaurants(r);
     setDataLoading(false);
   };
