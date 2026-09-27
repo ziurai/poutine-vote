@@ -238,6 +238,26 @@ export default function AdminPage() {
 
   const isOwner = (session?.user?.email || "").trim().toLowerCase() === OWNER_EMAIL;
 
+  // Resolve ISPs for collected vote IPs, in repeated bounded batches until the
+  // server reports none remaining. Sends the admin session token so the route
+  // can authorize; reports progress via the callback, then reloads.
+  const lookupIsps = async (onProgress) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const token = session?.access_token;
+    if (!token) throw new Error("Please sign in again.");
+    let processed = 0, updated = 0, hosting = 0;
+    for (let i = 0; i < 200; i++) {
+      const res = await fetch("/api/admin/isp-backfill", { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+      const r = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(r.error || `HTTP ${res.status}`);
+      processed += r.processed || 0; updated += r.updated || 0; hosting += r.hosting || 0;
+      onProgress?.({ processed, updated, hosting, remaining: r.remaining || 0 });
+      if (!r.remaining) break;
+    }
+    await loadData();
+    return { processed, updated, hosting };
+  };
+
   // Delete one participant. Runs as the logged-in admin, so RLS ("authenticated
   // full access") permits it while the public anon key still cannot. Confirmation
   // happens in the dashboard before this is called.
@@ -339,7 +359,7 @@ export default function AdminPage() {
           </>
         )}
 
-        {tab === "insights" && <AdminInsights participants={participants} restaurants={restaurants} onDelete={deleteParticipant} />}
+        {tab === "insights" && <AdminInsights participants={participants} restaurants={restaurants} onDelete={deleteParticipant} onLookupIsps={lookupIsps} />}
       </div>
     </div>
   );

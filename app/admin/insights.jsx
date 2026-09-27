@@ -63,6 +63,10 @@ const css = `
   .ins-del:hover { background: #ff4444; border-color: #ff4444; color: #fff; }
   .ins-del:disabled { opacity: 0.5; cursor: default; }
   .ins-ok { font-size: 13px; color: #7ab320; padding: 12px 0; }
+  .ins-btn { background: ${YELLOW}; color: #111; border: none; border-radius: 3px; font-family: 'GravySans', sans-serif; font-size: 15px; letter-spacing: 0.04em; padding: 8px 16px; cursor: pointer; }
+  .ins-btn:disabled { background: #444; color: #777; cursor: default; }
+  .ins-btn-note { font-size: 12px; color: #888; margin-top: 8px; }
+  .ins-host { color: #ff8a3d; font-weight: 700; }
 `;
 
 function localDayKey(d) {
@@ -133,6 +137,8 @@ function buildClusters(participants) {
       created_at: p.created_at,
       voted_at: p.voted_at,
       favorite: p.favorite || null,
+      isp: p.isp || null,
+      hosting: !!p.isp_hosting,
       ips: [p.signup_ip, p.vote_ip].filter(Boolean),
     };
   });
@@ -202,9 +208,23 @@ function spanText(min) {
   return `within ${Math.round(min / 1440)} days`;
 }
 
-export function AdminInsights({ participants, restaurants, onDelete }) {
+export function AdminInsights({ participants, restaurants, onDelete, onLookupIsps }) {
   const total = participants.length;
   const [busy, setBusy] = useState(null);
+  const [ispBusy, setIspBusy] = useState(false);
+  const [ispMsg, setIspMsg] = useState("");
+
+  const runIspLookup = async () => {
+    if (!onLookupIsps || ispBusy) return;
+    setIspBusy(true); setIspMsg("Looking up ISPs…");
+    try {
+      const r = await onLookupIsps((p) => setIspMsg(`Resolved ${p.processed} IPs · ${p.remaining} left…`));
+      setIspMsg(`Done — ${r.updated} accounts tagged, ${r.hosting} on datacenter/VPN IPs.`);
+    } catch (e) {
+      setIspMsg("Failed: " + (e?.message || e));
+    }
+    setIspBusy(false);
+  };
 
   const confirmDelete = async (m) => {
     if (!onDelete) return;
@@ -288,6 +308,13 @@ export function AdminInsights({ participants, restaurants, onDelete }) {
   };
   const restName = (id) => (restaurants.find((r) => r.id === id) || {}).name || "—";
   const clusters = buildClusters(participants);
+
+  const anyIsp = participants.some((p) => p.isp);
+  const ipsPending = new Set(participants.filter((p) => p.vote_ip && !p.isp).map((p) => p.vote_ip)).size;
+  const hostingVotes = participants
+    .filter((p) => p.isp_hosting && p.favorite)
+    .map((p) => ({ email: p.email, isp: p.isp, favorite: p.favorite, voted_at: p.voted_at, created_at: p.created_at }))
+    .sort((a, b) => (a.voted_at || "").localeCompare(b.voted_at || ""));
 
   return (
     <div className="ins">
@@ -401,6 +428,42 @@ export function AdminInsights({ participants, restaurants, onDelete }) {
         ))}
       </div>
 
+      {onLookupIsps && (
+        <div className="ins-card">
+          <div className="ins-card-title">IP / ISP intelligence</div>
+          <div className="ins-card-note">
+            Resolve the network each vote came from. Datacenter/VPN IPs (AWS, DigitalOcean, VPNs) are near-certain
+            fraud — real voters are on home or mobile ISPs. Sends collected IPs to ip-api.com to look up.
+          </div>
+          <button className="ins-btn" onClick={runIspLookup} disabled={ispBusy}>
+            {ispBusy ? "Working…" : anyIsp ? `Look up ${ipsPending} new IP${ipsPending === 1 ? "" : "s"}` : "Look up ISPs"}
+          </button>
+          {ispMsg && <div className="ins-btn-note">{ispMsg}</div>}
+
+          {anyIsp && (
+            <>
+              <div style={{ fontSize: 13, color: "#ccc", fontWeight: 700, margin: "18px 0 8px" }}>
+                Votes from datacenter / VPN IPs ({hostingVotes.length})
+              </div>
+              {hostingVotes.length ? hostingVotes.map((m) => (
+                <div className="ins-group-row" key={m.email}>
+                  <span className="ins-gr-email">{m.email}</span>
+                  <span className="ins-gr-meta">
+                    <span className="ins-host">⚠ {m.isp}</span> · <b>{restName(m.favorite)}</b>
+                    {m.voted_at ? ` · ${fmtWhen(m.voted_at)}` : ""}
+                  </span>
+                  {onDelete && (
+                    <button className="ins-del" disabled={busy === m.email} onClick={() => confirmDelete(m)}>
+                      {busy === m.email ? "…" : "Delete"}
+                    </button>
+                  )}
+                </div>
+              )) : <div className="ins-ok">✓ No votes from datacenter/VPN IPs.</div>}
+            </>
+          )}
+        </div>
+      )}
+
       <div className="ins-flag-card">
         <div className="ins-flag-title">⚑ Review — likely duplicate accounts ({clusters.length})</div>
         <div className="ins-card-note">
@@ -427,6 +490,7 @@ export function AdminInsights({ participants, restaurants, onDelete }) {
                 <span className="ins-gr-meta">
                   {fmtWhen(m.created_at)}
                   {m.favorite ? <> · <b>{restName(m.favorite)}</b></> : " · no vote"}
+                  {m.isp ? <> · {m.hosting ? <span className="ins-host">⚠ {m.isp}</span> : m.isp}</> : null}
                 </span>
                 {onDelete && (
                   <button className="ins-del" disabled={busy === m.email} onClick={() => confirmDelete(m)}>
