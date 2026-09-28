@@ -199,18 +199,8 @@ function EmailGate({ onEnter }) {
           </div>
         </div>
         <div className="gate-card">
-          <div style={{ fontFamily: "GravySans, sans-serif", fontSize: 22, color: "#fff", marginBottom: 12, letterSpacing: "0.04em" }}>Track your progress and vote!</div>
-          <div className="gate-label">Your Email Address</div>
-          <input className="gate-input" type="email" placeholder="you@email.com" value={email}
-            onChange={e => { setEmail(e.target.value); setError(""); }}
-            onKeyDown={e => e.key === "Enter" && handleSubmit()}
-          />
-          <div className="gate-hint">Use the <strong>same email</strong> every visit so all your stamps stay together.</div>
-          {error && <div className="gate-error">{error}</div>}
-          <button className="gate-btn" onClick={handleSubmit} disabled={loading}>
-            {loading ? "LOADING..." : "LET'S GO"}
-          </button>
-
+          <div style={{ fontFamily: "GravySans, sans-serif", fontSize: 22, color: "#FFD000", marginBottom: 8, letterSpacing: "0.04em" }}>Voting is now closed</div>
+          <div style={{ fontSize: 14, color: "#aaa", lineHeight: 1.6 }}>Thanks to everyone who tasted their way through Poutine Week. Winners will be announced soon — stay tuned!</div>
         </div>
       </div>
     </div>
